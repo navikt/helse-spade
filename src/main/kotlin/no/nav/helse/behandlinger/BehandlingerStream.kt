@@ -47,7 +47,9 @@ class BehandlingerStream(props: Properties, private val storeName: String) {
                     .withKeySerde(keySerde)
                     .withValueSerde(listValueSerde)
 
-            vedtakStream.groupBy({ _, value ->
+            vedtakStream.filter { _, value ->
+                value.has("originalSøknad")
+            }.groupBy({ _, value ->
                 value.path("originalSøknad").get("aktorId").asText()
             }, Serialized.with(keySerde, valueSerde)).aggregate({
                 emptyList()
