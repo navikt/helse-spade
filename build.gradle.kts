@@ -1,6 +1,15 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
+val ktorVersion = "1.1.2"
+val prometheusVersion = "0.5.0"
+val kafkaVersion = "2.0.1"
+
+val junitJupiterVersion = "5.3.1"
+val assertJVersion = "3.11.1"
 val mainClass = "no.nav.helse.AppKt"
+val jacksonVersion = "2.9.8"
+val wireMockVersion = "2.19.0"
+val mockkVersion = "1.9"
 
 plugins {
     kotlin("jvm") version "1.3.20"
@@ -14,6 +23,34 @@ buildscript {
 
 dependencies {
     compile(kotlin("stdlib"))
+    compile("ch.qos.logback:logback-classic:1.2.3")
+    compile("net.logstash.logback:logstash-logback-encoder:5.2")
+
+    compile("io.ktor:ktor-server-netty:$ktorVersion")
+    compile("io.ktor:ktor-jackson:$ktorVersion")
+    compile("io.ktor:ktor-auth-jwt:$ktorVersion") {
+        exclude(group = "junit")
+    }
+
+    compile("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
+    compile("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
+
+    compile("org.apache.kafka:kafka-streams:$kafkaVersion")
+
+    compile("io.prometheus:simpleclient_common:$prometheusVersion")
+    compile("io.prometheus:simpleclient_hotspot:$prometheusVersion")
+
+    testCompile("io.mockk:mockk:$mockkVersion")
+    testCompile ("no.nav:kafka-embedded-env:2.0.1")
+    testCompile("org.junit.jupiter:junit-jupiter-api:$junitJupiterVersion")
+    testCompile("org.junit.jupiter:junit-jupiter-params:$junitJupiterVersion")
+    testCompile("org.assertj:assertj-core:$assertJVersion")
+    testRuntime("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
+
+    testCompile("io.ktor:ktor-server-test-host:$ktorVersion") {
+        exclude(group = "junit")
+        exclude(group = "org.eclipse.jetty") // conflicts with WireMock
+    }
 }
 
 repositories {
