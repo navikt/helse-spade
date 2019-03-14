@@ -52,7 +52,9 @@ class BehandlingerStream(props: Properties, private val storeName: String) {
             }, Serialized.with(keySerde, valueSerde)).aggregate({
                 emptyList()
             }, { _, value, aggregated ->
-                aggregated + value
+                val list = aggregated.toMutableList()
+                list.add(value)
+                list.toList()
             }, materialized)
 
             return builder.build()
