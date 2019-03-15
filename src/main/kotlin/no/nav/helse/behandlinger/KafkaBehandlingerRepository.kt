@@ -26,4 +26,18 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
         log.error("unknown error while fetching state store", err)
         Either.Left(Feilårsak.UkjentFeil)
     }
+
+    fun getListOfKeys(): Either<Feilårsak, List<String>> = try {
+        var resultsList = emptyList<String>()
+        stateStore.all().forEach {
+            resultsList = resultsList.plus(it.key)
+        }
+        Either.Right(resultsList)
+    } catch (err: InvalidStateStoreException) {
+        log.info("state store is not available yet", err)
+        Either.Left(Feilårsak.MidlertidigUtilgjengelig)
+    } catch (err: Exception) {
+        log.error("unknown error while fetching state store", err)
+        Either.Left(Feilårsak.UkjentFeil)
+    }
 }

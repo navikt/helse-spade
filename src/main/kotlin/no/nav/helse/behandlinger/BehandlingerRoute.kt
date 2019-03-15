@@ -13,6 +13,10 @@ fun Route.behandlinger(service: BehandlingerService) {
                 .map { BehandlingerResponse(it) }
                 .respond(call)
     }
+    get("api/behandlinger") {
+        service.getAvailableActors().respond(call)
+    }
+
 }
 
 data class BehandlingerResponse(val behandlinger: List<JsonNode>)
