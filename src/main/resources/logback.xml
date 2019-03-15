@@ -4,6 +4,8 @@
         <encoder class="net.logstash.logback.encoder.LogstashEncoder" />
     </appender>
 
+    <logger name="io.ktor" level="TRACE" />
+
     <root level="INFO">
         <appender-ref ref="STDOUT_JSON" />
     </root>
