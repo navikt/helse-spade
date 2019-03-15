@@ -1,4 +1,4 @@
-package no.nav.helse.behandlinger
+package no.nav.helse.spade.behandlinger
 
 import com.fasterxml.jackson.databind.JsonNode
 import io.ktor.application.call
@@ -13,6 +13,12 @@ fun Route.behandlinger(service: BehandlingerService) {
                 .map { BehandlingerResponse(it) }
                 .respond(call)
     }
+
+    get("api/behandlinger") {
+        service.getAvailableActors().map { AktørerResponse(it) }
+                .respond(call)
+    }
 }
 
 data class BehandlingerResponse(val behandlinger: List<JsonNode>)
+data class AktørerResponse(val aktører: List<String>)

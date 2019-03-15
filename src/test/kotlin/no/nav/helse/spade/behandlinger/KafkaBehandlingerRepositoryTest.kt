@@ -1,4 +1,4 @@
-package no.nav.helse.behandlinger
+package no.nav.helse.spade.behandlinger
 
 import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.TextNode

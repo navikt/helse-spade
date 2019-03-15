@@ -1,9 +1,8 @@
 package no.nav.helse
 
-import com.auth0.jwk.Jwk
-import com.auth0.jwk.JwkProvider
 import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
+import com.github.tomakehurst.wiremock.client.WireMock
 import kotlinx.io.core.String
 import java.security.KeyPairGenerator
 import java.security.interfaces.RSAPrivateKey
@@ -29,21 +28,24 @@ class JwtStub(private val issuer: String) {
 
         return JWT.create()
                 .withIssuer(issuer)
+                .withKeyId("key-1234")
                 .withSubject(subject)
                 .sign(algorithm)
     }
 
-    fun stubbedJwkProvider(): StubbedJwkProvider {
-        return StubbedJwkProvider(publicKey)
-    }
-
-    class StubbedJwkProvider(private val publicKey: RSAPublicKey) : JwkProvider {
-        override fun get(keyId: String?): Jwk {
-            return Jwk(keyId, "RSA", "RS256", "sig", listOf(), null, null, null, mapOf(
-                    "e" to String(Base64.getEncoder().encode(publicKey.publicExponent.toByteArray())),
-                    "n" to String(Base64.getEncoder().encode(publicKey.modulus.toByteArray()))
-            ))
+    fun stubbedJwkProvider() = WireMock.get(WireMock.urlPathEqualTo("/jwks")).willReturn(
+            WireMock.okJson("""
+{
+    "keys": [
+        {
+            "kty": "RSA",
+            "alg": "RS256",
+            "kid": "key-1234",
+            "e": "${String(Base64.getEncoder().encode(publicKey.publicExponent.toByteArray()))}",
+            "n": "${String(Base64.getEncoder().encode(publicKey.modulus.toByteArray()))}"
         }
-
-    }
+    ]
+}
+""".trimIndent())
+    )
 }

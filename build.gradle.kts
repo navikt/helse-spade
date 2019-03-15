@@ -47,6 +47,10 @@ dependencies {
     testCompile("org.assertj:assertj-core:$assertJVersion")
     testRuntime("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
 
+    testCompile("com.github.tomakehurst:wiremock:$wireMockVersion") {
+        exclude(group = "junit")
+    }
+
     testCompile("io.ktor:ktor-server-test-host:$ktorVersion") {
         exclude(group = "junit")
         exclude(group = "org.eclipse.jetty") // conflicts with WireMock

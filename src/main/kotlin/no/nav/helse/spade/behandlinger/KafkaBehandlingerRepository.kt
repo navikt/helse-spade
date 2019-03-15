@@ -1,4 +1,4 @@
-package no.nav.helse.behandlinger
+package no.nav.helse.spade.behandlinger
 
 import no.nav.helse.Either
 import no.nav.helse.Feilårsak
@@ -19,6 +19,20 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
         stateStore.get(aktørId)?.let {
             Either.Right(it)
         } ?: Either.Left(Feilårsak.IkkeFunnet)
+    } catch (err: InvalidStateStoreException) {
+        log.info("state store is not available yet", err)
+        Either.Left(Feilårsak.MidlertidigUtilgjengelig)
+    } catch (err: Exception) {
+        log.error("unknown error while fetching state store", err)
+        Either.Left(Feilårsak.UkjentFeil)
+    }
+
+    fun getListOfKeys(): Either<Feilårsak, List<String>> = try {
+        val resultsList = mutableListOf<String>()
+        stateStore.all().forEach {
+            resultsList.add(it.key)
+        }
+        Either.Right(resultsList.toList())
     } catch (err: InvalidStateStoreException) {
         log.info("state store is not available yet", err)
         Either.Left(Feilårsak.MidlertidigUtilgjengelig)

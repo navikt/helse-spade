@@ -1,4 +1,4 @@
-package no.nav.helse.behandlinger
+package no.nav.helse.spade.behandlinger
 
 import com.fasterxml.jackson.databind.JsonNode
 import no.nav.helse.serde.JsonNodeDeserializer
@@ -28,6 +28,8 @@ class BehandlingerStream(props: Properties, private val storeName: String) {
     }
 
     fun stop() = consumer.close()
+
+    fun state() = consumer.state()
 
     fun store() = consumer.store(storeName, QueryableStoreTypes.keyValueStore<String, List<JsonNode>>())
 
