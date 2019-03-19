@@ -32,6 +32,7 @@ import org.junit.jupiter.api.BeforeAll
 import org.junit.jupiter.api.BeforeEach
 import org.junit.jupiter.api.Test
 import org.junit.jupiter.api.fail
+import java.io.File
 import java.util.*
 
 class SpadeComponentTest {
@@ -47,13 +48,14 @@ class SpadeComponentTest {
                 autoStart = false,
                 withSchemaRegistry = false,
                 withSecurity = true,
-                topics = listOf("aapen-helse-sykepenger-vedtak")
+                topics = listOf("aapen-helse-sykepenger-vedtak", "privat-helse-sykepenger-behandlingsfeil")
         )
 
         @BeforeAll
         @JvmStatic
         fun start() {
             server.start()
+
             embeddedEnvironment.start()
         }
 
@@ -62,6 +64,9 @@ class SpadeComponentTest {
         @JvmStatic
         fun stop() {
             server.stop()
+
+            try { File("/tmp/kafka-streams/").deleteRecursively() } catch(e: Exception) { /* you'll have to delete the materialized kstream yourself. */}
+
             embeddedEnvironment.tearDown()
         }
     }

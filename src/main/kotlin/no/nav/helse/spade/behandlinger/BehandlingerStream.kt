@@ -42,14 +42,22 @@ class BehandlingerStream(props: Properties, private val storeName: String) {
             val keySerde = Serdes.String()
             val valueSerde = Serdes.serdeFrom(JsonNodeSerializer(), JsonNodeDeserializer())
             val listValueSerde = Serdes.serdeFrom(ListSerializer(JsonNodeSerializer()), ListDeserializer(JsonNodeDeserializer()))
+
             val vedtakStream = builder.stream<String, JsonNode>("aapen-helse-sykepenger-vedtak", Consumed.with(keySerde, valueSerde)
                     .withOffsetResetPolicy(Topology.AutoOffsetReset.EARLIEST))
+            val failStream = builder.stream<String, JsonNode>("privat-helse-sykepenger-behandlingsfeil", Consumed.with(keySerde, valueSerde)
+                    .withOffsetResetPolicy(Topology.AutoOffsetReset.EARLIEST))
+                    .filter { _, node ->
+                        node.has("originalSøknad") && node.path("originalSøknad").has("aktorId")
+                    }
+
+            val mergedStream = vedtakStream.merge(failStream)
 
             val materialized = Materialized.`as`<String, List<JsonNode>, KeyValueStore<Bytes, ByteArray>>(storeName)
                     .withKeySerde(keySerde)
                     .withValueSerde(listValueSerde)
 
-            vedtakStream.filter { _, value ->
+            mergedStream.filter { _, value ->
                 value.has("originalSøknad")
             }.groupBy({ _, value ->
                 value.path("originalSøknad").get("aktorId").asText()
