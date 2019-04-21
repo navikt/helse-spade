@@ -1,20 +1,20 @@
 import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
-val ktorVersion = "1.1.2"
-val prometheusVersion = "0.5.0"
+val ktorVersion = "1.1.4"
+val prometheusVersion = "0.6.0"
 val kafkaVersion = "2.0.1"
 val fuelVersion = "2.0.1"
 val arrowVersion = "0.9.0"
 
-val junitJupiterVersion = "5.3.1"
-val assertJVersion = "3.11.1"
+val junitJupiterVersion = "5.5.0-M1"
+val assertJVersion = "3.12.2"
 val mainClass = "no.nav.helse.AppKt"
 val jacksonVersion = "2.9.8"
-val wireMockVersion = "2.19.0"
-val mockkVersion = "1.9"
+val wireMockVersion = "2.23.2"
+val mockkVersion = "1.9.3"
 
 plugins {
-    kotlin("jvm") version "1.3.20"
+    kotlin("jvm") version "1.3.30"
 }
 
 buildscript {
@@ -110,5 +110,5 @@ tasks.withType<Test> {
 }
 
 tasks.withType<Wrapper> {
-    gradleVersion = "5.1.1"
+    gradleVersion = "5.3.1"
 }
