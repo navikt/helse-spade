@@ -11,30 +11,30 @@ import java.util.*
 
 class JwtStub(private val issuer: String) {
 
-    private val privateKey: RSAPrivateKey
-    private val publicKey: RSAPublicKey
+   private val privateKey: RSAPrivateKey
+   private val publicKey: RSAPublicKey
 
-    init {
-        val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
-        keyPairGenerator.initialize(512)
+   init {
+      val keyPairGenerator = KeyPairGenerator.getInstance("RSA")
+      keyPairGenerator.initialize(512)
 
-        val keyPair = keyPairGenerator.genKeyPair()
-        privateKey = keyPair.private as RSAPrivateKey
-        publicKey = keyPair.public as RSAPublicKey
-    }
+      val keyPair = keyPairGenerator.genKeyPair()
+      privateKey = keyPair.private as RSAPrivateKey
+      publicKey = keyPair.public as RSAPublicKey
+   }
 
-    fun createTokenFor(subject: String): String {
-        val algorithm = Algorithm.RSA256(publicKey, privateKey)
+   fun createTokenFor(subject: String): String {
+      val algorithm = Algorithm.RSA256(publicKey, privateKey)
 
-        return JWT.create()
-                .withIssuer(issuer)
-                .withKeyId("key-1234")
-                .withSubject(subject)
-                .sign(algorithm)
-    }
+      return JWT.create()
+         .withIssuer(issuer)
+         .withKeyId("key-1234")
+         .withSubject(subject)
+         .sign(algorithm)
+   }
 
-    fun stubbedJwkProvider() = WireMock.get(WireMock.urlPathEqualTo("/jwks")).willReturn(
-            WireMock.okJson("""
+   fun stubbedJwkProvider() = WireMock.get(WireMock.urlPathEqualTo("/jwks")).willReturn(
+      WireMock.okJson("""
 {
     "keys": [
         {
@@ -47,5 +47,5 @@ class JwtStub(private val issuer: String) {
     ]
 }
 """.trimIndent())
-    )
+   )
 }
