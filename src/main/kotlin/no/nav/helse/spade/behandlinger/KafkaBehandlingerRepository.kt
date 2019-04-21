@@ -1,9 +1,9 @@
 package no.nav.helse.spade.behandlinger
 
-import no.nav.helse.Either
-import no.nav.helse.Feilårsak
-import org.apache.kafka.streams.errors.InvalidStateStoreException
-import org.slf4j.LoggerFactory
+import arrow.core.*
+import no.nav.helse.*
+import org.apache.kafka.streams.errors.*
+import org.slf4j.*
 
 class KafkaBehandlingerRepository(stream: BehandlingerStream) {
 

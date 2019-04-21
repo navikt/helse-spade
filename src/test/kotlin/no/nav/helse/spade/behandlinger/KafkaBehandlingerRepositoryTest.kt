@@ -1,14 +1,13 @@
 package no.nav.helse.spade.behandlinger
 
-import com.fasterxml.jackson.databind.JsonNode
-import com.fasterxml.jackson.databind.node.TextNode
-import io.mockk.every
-import io.mockk.mockk
-import no.nav.helse.Either
-import no.nav.helse.Feilårsak
-import org.apache.kafka.streams.errors.InvalidStateStoreException
-import org.apache.kafka.streams.state.ReadOnlyKeyValueStore
-import org.junit.jupiter.api.Assertions.assertEquals
+import arrow.core.*
+import com.fasterxml.jackson.databind.*
+import com.fasterxml.jackson.databind.node.*
+import io.mockk.*
+import no.nav.helse.*
+import org.apache.kafka.streams.errors.*
+import org.apache.kafka.streams.state.*
+import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Assertions.fail
 import org.junit.jupiter.api.Test
 
@@ -32,13 +31,11 @@ class KafkaBehandlingerRepositoryTest {
         val actual = KafkaBehandlingerRepository(streamMock)
                 .getBehandlingerForAktør(aktørId)
 
-        when (actual) {
-            is Either.Right -> {
-                assertEquals(1, actual.right.size)
-                assertEquals("Hello, World", actual.right[0].textValue())
-            }
-            is Either.Left -> fail { "Expected Either.Right to be returned" }
-        }
+        actual.fold(
+                { throw Exception("expected an Either.right") },
+                { right -> assertEquals("Hello, World", right[0].textValue()) }
+
+        )
     }
 
     @Test
@@ -89,8 +86,8 @@ class KafkaBehandlingerRepositoryTest {
     }
 
     private fun <T> assertFeilårsak(expected: Feilårsak, either: Either<Feilårsak, T>) =
-            when (either) {
-                is Either.Left -> assertEquals(expected, either.left)
-                is Either.Right -> fail { "Expected Either.Left to be returned" }
-            }
+            either.fold(
+                    { left -> assertEquals(expected, left) },
+                    { throw Exception("expected an Either.left") }
+            )
 }

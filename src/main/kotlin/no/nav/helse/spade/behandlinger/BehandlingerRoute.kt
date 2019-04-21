@@ -1,11 +1,9 @@
 package no.nav.helse.spade.behandlinger
 
-import com.fasterxml.jackson.databind.JsonNode
-import io.ktor.application.call
-import io.ktor.routing.Route
-import io.ktor.routing.get
-import no.nav.helse.map
-import no.nav.helse.respond
+import com.fasterxml.jackson.databind.*
+import io.ktor.application.*
+import io.ktor.routing.*
+import no.nav.helse.*
 
 fun Route.behandlinger(service: BehandlingerService) {
     get("api/behandlinger/{aktørId}") {
