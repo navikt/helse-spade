@@ -3,6 +3,8 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 val ktorVersion = "1.1.2"
 val prometheusVersion = "0.5.0"
 val kafkaVersion = "2.0.1"
+val fuelVersion = "2.0.1"
+val arrowVersion = "0.9.0"
 
 val junitJupiterVersion = "5.3.1"
 val assertJVersion = "3.11.1"
@@ -40,6 +42,10 @@ dependencies {
     compile("io.prometheus:simpleclient_common:$prometheusVersion")
     compile("io.prometheus:simpleclient_hotspot:$prometheusVersion")
 
+    compile("com.github.kittinunf.fuel:fuel-coroutines:$fuelVersion")
+
+    compile("io.arrow-kt:arrow-core-data:$arrowVersion")
+
     testCompile("io.mockk:mockk:$mockkVersion")
     testCompile ("no.nav:kafka-embedded-env:2.0.1")
     testCompile("org.junit.jupiter:junit-jupiter-api:$junitJupiterVersion")
@@ -70,7 +76,7 @@ java {
 }
 
 tasks.named<Jar>("jar") {
-    baseName = "app"
+    archiveBaseName.set("app")
 
     manifest {
         attributes["Main-Class"] = mainClass
