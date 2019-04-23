@@ -12,6 +12,7 @@ val mainClass = "no.nav.helse.AppKt"
 val jacksonVersion = "2.9.8"
 val wireMockVersion = "2.23.2"
 val mockkVersion = "1.9.3"
+val nimbusVersion = "5.8.0.wso2v1"
 
 plugins {
    kotlin("jvm") version "1.3.30"
@@ -51,6 +52,7 @@ dependencies {
    testCompile("org.junit.jupiter:junit-jupiter-api:$junitJupiterVersion")
    testCompile("org.junit.jupiter:junit-jupiter-params:$junitJupiterVersion")
    testCompile("org.assertj:assertj-core:$assertJVersion")
+   testCompile("org.wso2.orbit.com.nimbusds:nimbus-jose-jwt:$nimbusVersion")
    testRuntime("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
 
    testCompile("com.github.tomakehurst:wiremock:$wireMockVersion") {
