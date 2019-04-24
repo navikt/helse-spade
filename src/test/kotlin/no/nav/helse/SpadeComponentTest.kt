@@ -14,7 +14,7 @@ import io.ktor.server.engine.connector
 import io.ktor.server.testing.createTestEnvironment
 import io.ktor.server.testing.handleRequest
 import io.ktor.server.testing.withApplication
-import io.ktor.util.*
+import io.ktor.util.KtorExperimentalAPI
 import no.nav.common.JAASCredential
 import no.nav.common.KafkaEnvironment
 import no.nav.helse.serde.JsonNodeSerializer
@@ -25,14 +25,9 @@ import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.config.SaslConfigs
-import org.junit.jupiter.api.AfterAll
-import org.junit.jupiter.api.Assertions
+import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import org.junit.jupiter.api.Assertions.assertTrue
-import org.junit.jupiter.api.BeforeAll
-import org.junit.jupiter.api.BeforeEach
-import org.junit.jupiter.api.Test
-import org.junit.jupiter.api.fail
 import java.io.File
 import java.util.*
 
@@ -119,7 +114,7 @@ class SpadeComponentTest {
    fun `skal svare med alle behandlinger for en aktør`() {
       val aktørId = "1234567890123"
       val jwkStub = JwtStub("test issuer")
-      val token = jwkStub.createTokenFor("Z123456")
+      val token = jwkStub.createTokenFor("S150563")
 
       produserEnOKBehandling()
 
