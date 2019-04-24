@@ -34,7 +34,7 @@ import java.io.File
 import java.net.URL
 import java.util.*
 
-private val authorizedUsers = listOf("S150563", "T149391", "E117646", "S151395", "H131243", "T127350", "S122648")
+private val authorizedUsers = listOf("S150563", "T149391", "E117646", "S151395", "H131243", "T127350", "S122648", "G153965")
 
 private val auditLog = LoggerFactory.getLogger("auditLogger")
 
