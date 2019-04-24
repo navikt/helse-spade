@@ -1,0 +1,46 @@
+apiVersion: "nais.io/v1alpha1"
+kind: "Application"
+metadata:
+   name: spade
+   namespace: default
+   labels:
+      team: tbd
+spec:
+   image: is_set_from_pipeline
+   port: 8080
+   team: tbd
+   liveness:
+      path: isalive
+      initialDelay: 20
+      timeout: 1
+      periodSeconds: 5
+      failureThreshold: 10
+   readiness:
+      path: isready
+      initialDelay: 20
+      timeout: 1
+   resources:
+      limits:
+         cpu: 2000m
+         memory: 512Mi
+      requests:
+         cpu: 50m
+         memory: 128Mi
+   ingresses:
+      - https://spade.nais.preprod.local
+   replicas:
+      min: 1
+      max: 1
+      cpuThresholdPercentage: 90
+   prometheus:
+      enabled: true
+      path: /metrics
+   secrets: true
+   env:
+      - name: KAFKA_BOOTSTRAP_SERVERS
+        value: b27apvl00045.preprod.local:8443,b27apvl00046.preprod.local:8443,b27apvl00047.preprod.local:8443
+      - name: JWKS_URL
+        value: http://security-token-service/rest/v1/sts/jwks
+      - name: JWT_ISSUER
+        value: https://security-token-service.nais.preprod.local
+
