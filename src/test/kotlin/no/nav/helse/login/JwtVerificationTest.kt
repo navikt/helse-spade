@@ -1,6 +1,7 @@
 package no.nav.helse.login
 
 import com.auth0.jwk.*
+import com.auth0.jwt.JWT
 import com.nimbusds.jose.*
 import com.nimbusds.jose.crypto.*
 import com.nimbusds.jose.jwk.*
@@ -13,21 +14,40 @@ import java.io.*
 class JwtVerificationTest {
 
    private val requiredIssuer = "da issuah"
+   private val requiredAudience = "da audienze"
 
    @Test
-   fun validPublicKeyValidates() {
+   fun validatesIfAllIsGood() {
       val jwt = signedJwt()
       val jwkProvider = UrlJwkProvider(Unit.javaClass.classLoader.getResource("jwt/jwks_valid.json"))
-      verify(jwt, requiredIssuer, jwkProvider).fold(
-         { fail(it) }, { assertTrue(it.claims.containsKey("iss")) }
+      verify(jwt, requiredIssuer, requiredAudience, jwkProvider).fold(
+         { fail(it) }, { assertNotNull(JWT.decode(it)) }
       )
    }
 
    @Test
-   fun doesntValidateIfKeyIsTamperedWith() {
+   fun signatureMustBeValid() {
       val jwt = signedJwt()
       val jwkProvider = UrlJwkProvider(Unit.javaClass.classLoader.getResource("jwt/jwks_invalid.json"))
-      verify(jwt, requiredIssuer, jwkProvider).fold(
+      verify(jwt, requiredIssuer, requiredAudience, jwkProvider).fold(
+         { /* all is well */ }, { fail("shouldn't have validated") }
+      )
+   }
+
+   @Test
+   fun audienceMustBeValid() {
+      val jwt = signedJwt()
+      val jwkProvider = UrlJwkProvider(Unit.javaClass.classLoader.getResource("jwt/jwks_invalid.json"))
+      verify(jwt, requiredIssuer, "bogus audience", jwkProvider).fold(
+         { /* all is well */ }, { fail("shouldn't have validated") }
+      )
+   }
+
+   @Test
+   fun issuerMustBeValid() {
+      val jwt = signedJwt()
+      val jwkProvider = UrlJwkProvider(Unit.javaClass.classLoader.getResource("jwt/jwks_invalid.json"))
+      verify(jwt, "bogus issuer", requiredAudience, jwkProvider).fold(
          { /* all is well */ }, { fail("shouldn't have validated") }
       )
    }
@@ -36,8 +56,13 @@ class JwtVerificationTest {
       val jwkJson = File(Unit.javaClass.classLoader.getResource("jwt/keypair.json").toURI()).readText()
       val jwk = JWK.parse(jwkJson)
       val signer = RSASSASigner(jwk as RSAKey)
-      val jwtHeader = JWSHeader.Builder(JWSAlgorithm.RS256).keyID(jwk.keyID).customParam("iss", "da issuah").build()
-      val claims = JWTClaimsSet.Builder().issuer(requiredIssuer).build()
+      val jwtHeader = JWSHeader.Builder(JWSAlgorithm.RS256)
+         .keyID(jwk.keyID)
+         .build()
+      val claims = JWTClaimsSet.Builder()
+         .issuer(requiredIssuer)
+         .audience(requiredAudience)
+         .build()
       val signedJwt = SignedJWT(jwtHeader, claims)
 
       signedJwt.sign(signer)

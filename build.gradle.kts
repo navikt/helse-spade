@@ -46,6 +46,7 @@ dependencies {
    compile("com.github.kittinunf.fuel:fuel-coroutines:$fuelVersion")
 
    compile("io.arrow-kt:arrow-core-data:$arrowVersion")
+   compile("io.arrow-kt:arrow-effects-data:$arrowVersion")
 
    testCompile("io.mockk:mockk:$mockkVersion")
    testCompile ("no.nav:kafka-embedded-env:2.0.1")
