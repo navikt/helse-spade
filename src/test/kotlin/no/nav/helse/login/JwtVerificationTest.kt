@@ -20,7 +20,7 @@ class JwtVerificationTest {
    fun validatesIfAllIsGood() {
       val jwt = signedJwt()
       val jwkProvider = UrlJwkProvider(Unit.javaClass.classLoader.getResource("jwt/jwks_valid.json"))
-      verify(jwt, requiredIssuer, requiredAudience, jwkProvider).fold(
+      verifyJWT(jwt, requiredIssuer, requiredAudience, jwkProvider).fold(
          { fail(it) }, { assertNotNull(JWT.decode(it)) }
       )
    }
@@ -29,7 +29,7 @@ class JwtVerificationTest {
    fun signatureMustBeValid() {
       val jwt = signedJwt()
       val jwkProvider = UrlJwkProvider(Unit.javaClass.classLoader.getResource("jwt/jwks_invalid.json"))
-      verify(jwt, requiredIssuer, requiredAudience, jwkProvider).fold(
+      verifyJWT(jwt, requiredIssuer, requiredAudience, jwkProvider).fold(
          { /* all is well */ }, { fail("shouldn't have validated") }
       )
    }
@@ -38,7 +38,7 @@ class JwtVerificationTest {
    fun audienceMustBeValid() {
       val jwt = signedJwt()
       val jwkProvider = UrlJwkProvider(Unit.javaClass.classLoader.getResource("jwt/jwks_invalid.json"))
-      verify(jwt, requiredIssuer, "bogus audience", jwkProvider).fold(
+      verifyJWT(jwt, requiredIssuer, "bogus audience", jwkProvider).fold(
          { /* all is well */ }, { fail("shouldn't have validated") }
       )
    }
@@ -47,7 +47,7 @@ class JwtVerificationTest {
    fun issuerMustBeValid() {
       val jwt = signedJwt()
       val jwkProvider = UrlJwkProvider(Unit.javaClass.classLoader.getResource("jwt/jwks_invalid.json"))
-      verify(jwt, "bogus issuer", requiredAudience, jwkProvider).fold(
+      verifyJWT(jwt, "bogus issuer", requiredAudience, jwkProvider).fold(
          { /* all is well */ }, { fail("shouldn't have validated") }
       )
    }

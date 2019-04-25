@@ -19,18 +19,18 @@ import org.json.simple.parser.*
 import java.net.*
 import java.security.interfaces.*
 
-fun Route.login(idpBaseUrl: String, oidcConfigUrl: String, oidcClientId: String, oidcIssuer: String) {
-   val oidcConfig = oidcConfigUrl.getJson().fold(
+fun Route.login(oidcInfo: OidcInfo) {
+   val oidcConfig = oidcInfo.configUrl.getJson().fold(
       { throwable -> throw throwable },
       { it }
    )
-   val jwkProvider = UrlJwkProvider(URL(oidcConfig["jwks_uri"]?.toString() ?: "ukjent"))
+   val jwkProvider = UrlJwkProvider(URL(oidcConfig["jwks_uri"]?.toString() ?: ""))
 
    get("/login") {
-      val authUrl = "$idpBaseUrl/authorize" +
-         "?client_id=$oidcClientId" +
+      val authUrl = (oidcConfig["authorization_endpoint"]?.toString() ?: "") +
+         "?client_id=${oidcInfo.clientId}" +
          "&response_type=id_token code" +
-         "&redirect_uri=${buildCallbackUrl(call.request)}" +
+         "&redirect_uri=${myBaseUrl(call.request)}/callback" +
          "&scope=openid" +
          "&response_mode=form_post" +
          "&nonce=abcdef"
@@ -40,9 +40,15 @@ fun Route.login(idpBaseUrl: String, oidcConfigUrl: String, oidcClientId: String,
    post("/callback") {
       val params = call.receiveParameters()
       binding<Throwable, String> {
-         authSuccessful(params)
-         val (verifiedIdToken) = verify(params["id_token"] ?: "", oidcIssuer, oidcClientId, jwkProvider)
-         verifiedIdToken
+         wasRequestSuccessful(params)
+         verifyJWT(params["id_token"] ?: "", oidcInfo.requiredIssuer, oidcInfo.clientId, jwkProvider)
+         val (tokens) = fireTokenRequest(
+            oidcConfig["token_endpoint"]?.toString() ?: "",
+            oidcInfo.clientId,
+            oidcInfo.clientSecret,
+            params["code"] ?: "",
+            "${myBaseUrl(call.request)}/callback")
+         tokens["id_token"]?.toString() ?: "missing_token"
       }.fold(
          { throwable -> call.respond(HttpStatusCode.BadRequest, throwable.message ?: "unknown error") },
          { call.respond(it) }
@@ -50,17 +56,7 @@ fun Route.login(idpBaseUrl: String, oidcConfigUrl: String, oidcClientId: String,
    }
 }
 
-fun String.post(params: List<Pair<String, String>>) =
-   Try {
-      toJson(this.httpPost(params).responseString())
-   }.toEither()
-
-fun String.getJson() =
-   Try {
-      toJson(this.httpGet().responseString())
-   }.toEither()
-
-fun verify(token: String, requiredIssuer: String, requiredAudience: String, jwkProvider: JwkProvider) =
+fun verifyJWT(token: String, requiredIssuer: String, requiredAudience: String, jwkProvider: JwkProvider) =
    Try {
       val jwk = jwkProvider[JWT.decode(token).keyId]
       val algorithm = Algorithm.RSA256(jwk.publicKey as RSAPublicKey, null)
@@ -72,22 +68,44 @@ fun verify(token: String, requiredIssuer: String, requiredAudience: String, jwkP
          .token
    }.toEither()
 
+fun String.post(params: List<Pair<String, String>>) =
+   Try {
+      toJson(this.httpPost(params).responseString())
+   }.toEither()
+
+fun String.getJson() =
+   Try {
+      toJson(this.httpGet().responseString())
+   }.toEither()
+
 private fun toJson(fuelResult: ResponseResultOf<String>): JSONObject {
    val (request, response, result) = fuelResult
    return when (response.statusCode) {
-      200-> JSONParser().parse(result.component1()) as JSONObject
-      else -> throw Exception("got status ${response.statusCode} from ${request.url.toExternalForm()}")
+      200  -> JSONParser().parse(result.component1()) as JSONObject
+      else -> throw Exception("got status ${response.statusCode} from ${request.url.toExternalForm()}.")
    }
 }
 
-private fun buildCallbackUrl(req: ApplicationRequest) =
-   "${req.origin.scheme}://${req.host()}:${req.port()}/callback"
+private fun myBaseUrl(req: ApplicationRequest) =
+   "${req.origin.scheme}://${req.host()}:${req.port()}"
 
-private fun authSuccessful(params: Parameters) =
+private fun wasRequestSuccessful(params: Parameters) =
    Try {
       params["error"]?.let {
          throw RuntimeException(params["error_description"])
       }
-      params["id_token"]!!
    }.toEither()
+
+private fun fireTokenRequest(url: String, clientId: String, clientSecret: String, code: String, redirectUrl: String) =
+   url.post(listOf(
+         "client_id" to clientId,
+         "scope" to "https://graph.microsoft.com/user.read",
+         "code" to code,
+         "redirect_uri" to redirectUrl,
+         "grant_type" to "authorization_code",
+         "client_secret" to clientSecret
+      )
+   )
+
+data class OidcInfo(val configUrl: String, val clientId: String, val requiredIssuer: String, val clientSecret: String)
 
