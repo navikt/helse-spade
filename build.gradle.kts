@@ -15,7 +15,7 @@ val mockkVersion = "1.9.3"
 val nimbusVersion = "5.8.0.wso2v1"
 
 plugins {
-   kotlin("jvm") version "1.3.30"
+   kotlin("jvm") version "1.3.31"
 }
 
 buildscript {
@@ -114,5 +114,5 @@ tasks.withType<Test> {
 }
 
 tasks.withType<Wrapper> {
-   gradleVersion = "5.3.1"
+   gradleVersion = "5.4"
 }
