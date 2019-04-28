@@ -49,23 +49,18 @@ jobs:
                    docker push $DOCKER_IMG_NAME:$COMMIT_SHORT
                  fi
          - run:
-              name: setup container for yaml volume
-              command: |
-                 set -e
-                 docker create -v /nais --name naisyaml alpine:3.4 /bin/true
-                 docker cp deploy/preprod.yaml naisyaml:/nais
-                 docker cp deploy/prod.yaml naisyaml:/nais
-         - run:
               name: deploy to preprod
               command: |
                  set -e
+                 docker create -v /nais --name naisyamlpreprod alpine:3.4 /bin/true
+                 docker cp deploy/preprod.yaml naisyamlpreprod:/nais
                  if [ -z "${CIRCLE_PULL_REQUEST}" ] && [ "${CIRCLE_BRANCH}" = "master" ]; then
-                    PREPROD_NAISERATOR=$(docker run --volumes-from naisyaml mikefarah/yq yq r /nais/preprod.yaml -j)
+                    PREPROD_NAISERATOR=$(docker run --volumes-from naisyamlpreprod mikefarah/yq yq r /nais/preprod.yaml -j)
                     PREPROD_NAISERATOR=$(echo $PREPROD_NAISERATOR | jq '.spec.image = "'$DOCKER_IMG_NAME':'$COMMIT_SHORT'"' -c)
                     PREPROD_DEPLOYMENT=$(cat deploy/deployreq.json | jq '.payload.kubernetes.resources += ['$PREPROD_NAISERATOR']')
                     PREPROD_DEPLOYMENT=$(echo $PREPROD_DEPLOYMENT | jq '.environment = "dev-fss"')
                     PREPROD_DEPLOYMENT=$(echo $PREPROD_DEPLOYMENT | jq '.ref = "'$COMMIT_SHORT'"')
-                    curl -i -n \
+                    curl -i -n --fail \
                         -X POST \
                         -d "$PREPROD_DEPLOYMENT" \
                         -H "Accept: application/vnd.github.ant-man-preview+json" \
@@ -75,13 +70,15 @@ jobs:
               name: deploy to prod
               command: |
                  set -e
+                 docker create -v /nais --name naisyamlprod alpine:3.4 /bin/true
+                 docker cp deploy/preprod.yaml naisyamlprod:/nais
                  if [ -z "${CIRCLE_PULL_REQUEST}" ] && [ "${CIRCLE_BRANCH}" = "master" ]; then
-                    PROD_NAISERATOR=$(docker run --volumes-from naisyaml mikefarah/yq yq r /nais/prod.yaml -j)
+                    PROD_NAISERATOR=$(docker run --volumes-from naisyamlprod mikefarah/yq yq r /nais/prod.yaml -j)
                     PROD_NAISERATOR=$(echo $PROD_NAISERATOR | jq '.spec.image = "'$DOCKER_IMG_NAME':'$COMMIT_SHORT'"' -c)
                     PROD_DEPLOYMENT=$(cat deploy/deployreq.json | jq '.payload.kubernetes.resources += ['$PROD_NAISERATOR']')
                     PROD_DEPLOYMENT=$(echo $PROD_DEPLOYMENT | jq '.environment = "prod-fss"')
                     PROD_DEPLOYMENT=$(echo $PROD_DEPLOYMENT | jq '.ref = "'$COMMIT_SHORT'"')
-                    curl -i -n \
+                    curl -i -n --fail \
                         -X POST \
                         -d "$PROD_DEPLOYMENT" \
                         -H "Accept: application/vnd.github.ant-man-preview+json" \
