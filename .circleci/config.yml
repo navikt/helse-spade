@@ -11,7 +11,7 @@ jobs:
                  - gradle-{{ checksum "build.gradle.kts" }}
          - run:
               name: build
-              command: ./gradlew build
+              command: ./gradlew test build
          - save_cache:
               paths:
                  - ~/.gradle
@@ -49,11 +49,16 @@ jobs:
                    docker push $DOCKER_IMG_NAME:$COMMIT_SHORT
                  fi
          - run:
-              name: deploy to preprod
+              name: setup container for yaml volume
               command: |
                  set -e
                  docker create -v /nais --name naisyaml alpine:3.4 /bin/true
                  docker cp deploy/preprod.yaml naisyaml:/nais
+                 docker cp deploy/prod.yaml naisyaml:/nais
+         - run:
+              name: deploy to preprod
+              command: |
+                 set -e
                  if [ -z "${CIRCLE_PULL_REQUEST}" ] && [ "${CIRCLE_BRANCH}" = "master" ]; then
                     PREPROD_NAISERATOR=$(docker run --volumes-from naisyaml mikefarah/yq yq r /nais/preprod.yaml -j)
                     PREPROD_NAISERATOR=$(echo $PREPROD_NAISERATOR | jq '.spec.image = "'$DOCKER_IMG_NAME':'$COMMIT_SHORT'"' -c)
@@ -70,8 +75,6 @@ jobs:
               name: deploy to prod
               command: |
                  set -e
-                 docker create -v /nais --name naisyaml alpine:3.4 /bin/true
-                 docker cp deploy/prod.yaml naisyaml:/nais
                  if [ -z "${CIRCLE_PULL_REQUEST}" ] && [ "${CIRCLE_BRANCH}" = "master" ]; then
                     PROD_NAISERATOR=$(docker run --volumes-from naisyaml mikefarah/yq yq r /nais/prod.yaml -j)
                     PROD_NAISERATOR=$(echo $PROD_NAISERATOR | jq '.spec.image = "'$DOCKER_IMG_NAME':'$COMMIT_SHORT'"' -c)
