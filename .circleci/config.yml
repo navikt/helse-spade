@@ -71,7 +71,7 @@ jobs:
               command: |
                  set -e
                  docker create -v /nais --name naisyamlprod alpine:3.4 /bin/true
-                 docker cp deploy/preprod.yaml naisyamlprod:/nais
+                 docker cp deploy/prod.yaml naisyamlprod:/nais
                  if [ -z "${CIRCLE_PULL_REQUEST}" ] && [ "${CIRCLE_BRANCH}" = "master" ]; then
                     PROD_NAISERATOR=$(docker run --volumes-from naisyamlprod mikefarah/yq yq r /nais/prod.yaml -j)
                     PROD_NAISERATOR=$(echo $PROD_NAISERATOR | jq '.spec.image = "'$DOCKER_IMG_NAME':'$COMMIT_SHORT'"' -c)
