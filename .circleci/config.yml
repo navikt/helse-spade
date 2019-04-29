@@ -42,6 +42,8 @@ jobs:
                  if [ -z "${CIRCLE_PULL_REQUEST}" ] && [ "${CIRCLE_BRANCH}" = "master" ]; then
                    export DOCKER_IMG_NAME=navikt/spade
                    export COMMIT_SHORT=$(git rev-parse --short HEAD)
+                   echo "$DOCKER_IMG_NAME" >> $BASH_ENV
+                   echo "$COMMIT_SHORT" >> $BASH_ENV
 
                    docker build . -t $DOCKER_IMG_NAME:$COMMIT_SHORT
 
@@ -60,7 +62,6 @@ jobs:
                     PREPROD_DEPLOYMENT=$(cat deploy/deployreq.json | jq '.payload.kubernetes.resources += ['$PREPROD_NAISERATOR']')
                     PREPROD_DEPLOYMENT=$(echo $PREPROD_DEPLOYMENT | jq '.environment = "dev-fss"')
                     PREPROD_DEPLOYMENT=$(echo $PREPROD_DEPLOYMENT | jq '.ref = "'$COMMIT_SHORT'"')
-                    echo "$PREPROD_DEPLOYMENT"
                     curl -i -n --fail \
                         -X POST \
                         -d "$PREPROD_DEPLOYMENT" \
