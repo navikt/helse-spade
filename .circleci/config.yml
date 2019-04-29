@@ -42,8 +42,8 @@ jobs:
                  if [ -z "${CIRCLE_PULL_REQUEST}" ] && [ "${CIRCLE_BRANCH}" = "master" ]; then
                    export DOCKER_IMG_NAME="navikt/spade"
                    export COMMIT_SHORT="$(git rev-parse --short HEAD)"
-                   echo 'export DOCKER_IMG_NAME="$DOCKER_IMG_NAME"' >> $BASH_ENV
-                   echo 'export COMMIT_SHORT="$COMMIT_SHORT"' >> $BASH_ENV
+                   echo "export DOCKER_IMG_NAME=$DOCKER_IMG_NAME" >> $BASH_ENV
+                   echo "export COMMIT_SHORT=$COMMIT_SHORT" >> $BASH_ENV
 
                    docker build . -t $DOCKER_IMG_NAME:$COMMIT_SHORT
 
