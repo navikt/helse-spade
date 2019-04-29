@@ -60,6 +60,7 @@ jobs:
                     PREPROD_DEPLOYMENT=$(cat deploy/deployreq.json | jq '.payload.kubernetes.resources += ['$PREPROD_NAISERATOR']')
                     PREPROD_DEPLOYMENT=$(echo $PREPROD_DEPLOYMENT | jq '.environment = "dev-fss"')
                     PREPROD_DEPLOYMENT=$(echo $PREPROD_DEPLOYMENT | jq '.ref = "'$COMMIT_SHORT'"')
+                    echo "$PREPROD_DEPLOYMENT"
                     curl -i -n --fail \
                         -X POST \
                         -d "$PREPROD_DEPLOYMENT" \
