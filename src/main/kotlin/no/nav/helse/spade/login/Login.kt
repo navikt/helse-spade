@@ -1,7 +1,6 @@
 package no.nav.helse.spade.login
 
 import arrow.core.*
-import arrow.core.extensions.either.monad.*
 import com.auth0.jwk.*
 import com.auth0.jwt.*
 import com.auth0.jwt.algorithms.*
@@ -19,6 +18,8 @@ import org.json.simple.parser.*
 import java.net.*
 import java.security.interfaces.*
 
+data class OidcInfo(val configUrl: String, val clientId: String, val requiredIssuer: String, val clientSecret: String)
+
 fun Route.login(oidcInfo: OidcInfo) {
    val oidcConfig = oidcInfo.configUrl.getJson().fold(
       { throwable -> throw throwable },
@@ -33,26 +34,26 @@ fun Route.login(oidcInfo: OidcInfo) {
          "&redirect_uri=${myBaseUrl(call.request)}/callback" +
          "&scope=openid" +
          "&response_mode=form_post" +
-         "&nonce=abcdef"
+         "&nonce=whatever"
       call.respondRedirect(authUrl)
    }
 
    post("/callback") {
       val params = call.receiveParameters()
-      binding<Throwable, String> {
-         wasRequestSuccessful(params)
-         verifyJWT(params["id_token"] ?: "", oidcInfo.requiredIssuer, oidcInfo.clientId, jwkProvider)
-         val (tokens) = fireTokenRequest(
-            oidcConfig["token_endpoint"]?.toString() ?: "",
-            oidcInfo.clientId,
-            oidcInfo.clientSecret,
-            params["code"] ?: "",
-            "${myBaseUrl(call.request)}/callback")
-         tokens["id_token"]?.toString() ?: "missing_token"
-      }.fold(
-         { throwable -> call.respond(HttpStatusCode.BadRequest, throwable.message ?: "unknown error") },
-         { call.respond(it) }
-      )
+
+      wasRequestSuccessful(params)
+         .flatMap {
+            verifyJWT(params["id_token"] ?: "", oidcInfo.requiredIssuer, oidcInfo.clientId, jwkProvider)
+         }.flatMap {
+            fireTokenRequest(
+               oidcConfig["token_endpoint"]?.toString() ?: "",
+               oidcInfo,
+               params["code"] ?: "",
+               "${myBaseUrl(call.request)}/callback")
+         }.fold(
+            { throwable -> call.respond(HttpStatusCode.BadRequest, throwable.message ?: "unknown error") },
+            { call.respond(it["id_token"] ?: "should have been an id token") }
+         )
    }
 }
 
@@ -96,16 +97,15 @@ private fun wasRequestSuccessful(params: Parameters) =
       }
    }.toEither()
 
-private fun fireTokenRequest(url: String, clientId: String, clientSecret: String, code: String, redirectUrl: String) =
+private fun fireTokenRequest(url: String, oidcInfo: OidcInfo, code: String, redirectUrl: String) =
    url.post(listOf(
-         "client_id" to clientId,
+         "client_id" to oidcInfo.clientId,
          "scope" to "https://graph.microsoft.com/user.read",
          "code" to code,
          "redirect_uri" to redirectUrl,
          "grant_type" to "authorization_code",
-         "client_secret" to clientSecret
+         "client_secret" to oidcInfo.clientSecret
       )
    )
 
-data class OidcInfo(val configUrl: String, val clientId: String, val requiredIssuer: String, val clientSecret: String)
 
