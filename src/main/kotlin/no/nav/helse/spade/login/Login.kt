@@ -4,31 +4,24 @@ import arrow.core.*
 import com.auth0.jwk.*
 import com.auth0.jwt.*
 import com.auth0.jwt.algorithms.*
-import com.github.kittinunf.fuel.*
-import com.github.kittinunf.fuel.core.*
 import io.ktor.application.*
 import io.ktor.features.*
 import io.ktor.http.*
-import io.ktor.http.Parameters
 import io.ktor.request.*
 import io.ktor.response.*
 import io.ktor.routing.*
+import no.nav.helse.http.*
 import org.json.simple.*
-import org.json.simple.parser.*
 import java.net.*
 import java.security.interfaces.*
 
-data class OidcInfo(val configUrl: String, val clientId: String, val requiredIssuer: String, val clientSecret: String)
+data class OidcInfo(val provider: JSONObject, val clientId: String, val requiredIssuer: String, val clientSecret: String)
 
 fun Route.login(oidcInfo: OidcInfo) {
-   val oidcConfig = oidcInfo.configUrl.getJson().fold(
-      { throwable -> throw throwable },
-      { it }
-   )
-   val jwkProvider = UrlJwkProvider(URL(oidcConfig["jwks_uri"]?.toString() ?: ""))
+   val jwkProvider = UrlJwkProvider(URL(oidcInfo.provider["jwks_uri"]?.toString() ?: ""))
 
    get("/login") {
-      val authUrl = (oidcConfig["authorization_endpoint"]?.toString() ?: "") +
+      val authUrl = (oidcInfo.provider["authorization_endpoint"]?.toString() ?: "") +
          "?client_id=${oidcInfo.clientId}" +
          "&response_type=id_token code" +
          "&redirect_uri=${myBaseUrl(call.request)}/callback" +
@@ -46,7 +39,7 @@ fun Route.login(oidcInfo: OidcInfo) {
             verifyJWT(params["id_token"] ?: "", oidcInfo.requiredIssuer, oidcInfo.clientId, jwkProvider)
          }.flatMap {
             fireTokenRequest(
-               oidcConfig["token_endpoint"]?.toString() ?: "",
+               oidcInfo.provider["token_endpoint"]?.toString() ?: "",
                oidcInfo,
                params["code"] ?: "",
                "${myBaseUrl(call.request)}/callback")
@@ -68,24 +61,6 @@ fun verifyJWT(token: String, requiredIssuer: String, requiredAudience: String, j
          .verify(token)
          .token
    }.toEither()
-
-fun String.post(params: List<Pair<String, String>>) =
-   Try {
-      toJson(this.httpPost(params).responseString())
-   }.toEither()
-
-fun String.getJson() =
-   Try {
-      toJson(this.httpGet().responseString())
-   }.toEither()
-
-private fun toJson(fuelResult: ResponseResultOf<String>): JSONObject {
-   val (request, response, result) = fuelResult
-   return when (response.statusCode) {
-      200  -> JSONParser().parse(result.component1()) as JSONObject
-      else -> throw Exception("got status ${response.statusCode} from ${request.url.toExternalForm()}.")
-   }
-}
 
 private fun myBaseUrl(req: ApplicationRequest) =
    "${req.origin.scheme}://${req.host()}:${req.port()}"

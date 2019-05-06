@@ -78,15 +78,18 @@ class SpadeComponentTest {
    @KtorExperimentalAPI
    fun `uautentisert forespørsel skal svare med 401`() {
       val aktørId = "12345678911"
-      val jwkStub = JwtStub("test issuer")
+      val jwkStub = JwtStub("test issuer", server.baseUrl())
 
       WireMock.stubFor(jwkStub.stubbedJwkProvider())
+      WireMock.stubFor(jwkStub.stubbedConfigProvider())
 
       withApplication(
          environment = createTestEnvironment {
             with (config as MapApplicationConfig) {
-               put("jwks.url", server.baseUrl() + "/jwks")
-               put("jwt.issuer", "test issuer")
+               put("oidcConfigUrl", server.baseUrl() + "/config")
+               put("issuer", "test issuer")
+               put("clientId", "el_cliento")
+               put("clientSecret", "el_secreto")
 
                put("kafka.app-id", "spade-v1")
                put("kafka.store-name", "sykepenger-state-store")
@@ -113,18 +116,21 @@ class SpadeComponentTest {
    @KtorExperimentalAPI
    fun `skal svare med alle behandlinger for en aktør`() {
       val aktørId = "1234567890123"
-      val jwkStub = JwtStub("test issuer")
+      val jwkStub = JwtStub("test issuer", server.baseUrl())
       val token = jwkStub.createTokenFor("S150563")
 
       produserEnOKBehandling()
 
       WireMock.stubFor(jwkStub.stubbedJwkProvider())
+      WireMock.stubFor(jwkStub.stubbedConfigProvider())
 
       withApplication(
          environment = createTestEnvironment {
             with (config as MapApplicationConfig) {
-               put("jwks.url", server.baseUrl() + "/jwks")
-               put("jwt.issuer", "test issuer")
+               put("oidcConfigUrl", server.baseUrl() + "/config")
+               put("issuer", "test issuer")
+               put("clientId", "el_cliento")
+               put("clientSecret", "el_secreto")
 
                put("kafka.app-id", "spade-v1")
                put("kafka.store-name", "sykepenger-state-store")

@@ -39,9 +39,6 @@ fun createApplicationEnvironment(env: Environment) = applicationEngineEnvironmen
 @KtorExperimentalAPI
 fun Environment.configureApplicationEnvironment(builder: ApplicationEngineEnvironmentBuilder) = builder.apply {
    with (config as MapApplicationConfig) {
-      put("jwks.url", jwksUrl)
-      put("jwt.issuer", jwtIssuer)
-
       put("kafka.app-id", "spade-v1")
       put("kafka.store-name", "sykepenger-state-store")
       put("kafka.bootstrap-servers", bootstrapServersUrl)
@@ -50,6 +47,11 @@ fun Environment.configureApplicationEnvironment(builder: ApplicationEngineEnviro
 
       navTruststorePath?.let { put("kafka.truststore-path", it) }
       navTruststorePassword?.let { put("kafka.truststore-password", it) }
+
+      put("oidcConfigUrl", oidcConfigUrl)
+      put("clientId", appId)
+      put("issuer", issuer)
+      put("clientSecret", clientSecret)
    }
 }
 

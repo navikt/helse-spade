@@ -5,7 +5,7 @@ import com.github.tomakehurst.wiremock.client.*
 import com.github.tomakehurst.wiremock.client.WireMock.*
 import com.github.tomakehurst.wiremock.core.*
 import com.github.tomakehurst.wiremock.http.*
-import no.nav.helse.spade.login.*
+import no.nav.helse.http.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 

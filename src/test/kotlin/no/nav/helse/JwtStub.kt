@@ -9,7 +9,7 @@ import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
 import java.util.*
 
-class JwtStub(private val issuer: String) {
+class JwtStub(private val issuer: String, private val baseUrl: String) {
 
    private val privateKey: RSAPrivateKey
    private val publicKey: RSAPublicKey
@@ -45,6 +45,14 @@ class JwtStub(private val issuer: String) {
             "n": "${String(Base64.getEncoder().encode(publicKey.modulus.toByteArray()))}"
         }
     ]
+}
+""".trimIndent())
+   )
+
+   fun stubbedConfigProvider() = WireMock.get(WireMock.urlPathEqualTo("/config")).willReturn(
+      WireMock.okJson("""
+{
+    "jwks_uri": "$baseUrl/jwks"
 }
 """.trimIndent())
    )

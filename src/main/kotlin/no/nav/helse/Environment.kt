@@ -7,12 +7,13 @@ data class Environment(
    val navTruststorePath: String? = getOptionalEnvVar("NAV_TRUSTSTORE_PATH"),
    val navTruststorePassword: String? = getOptionalEnvVar("NAV_TRUSTSTORE_PASSWORD"),
 
-   val jwksUrl: String = getEnvVar("JWKS_URL"),
-   val jwtIssuer: String = getEnvVar("JWT_ISSUER")
+   val oidcConfigUrl: String = getEnvVar("OIDC_CONFIG_URL"),
+   val appId: String = getEnvVar("APP_ID"),
+   val issuer: String = getEnvVar("ISSUER"),
+   val clientSecret: String = getEnvVar("CLIENT_SECRET")
 )
 
 private fun getEnvVar(varName: String) = getOptionalEnvVar(varName) ?: throw Exception("mangler verdi for $varName")
 
 private fun getOptionalEnvVar(varName: String): String? = System.getenv(varName)
-
 
