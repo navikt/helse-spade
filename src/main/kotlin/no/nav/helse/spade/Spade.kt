@@ -1,8 +1,6 @@
 package no.nav.helse.spade
 
-import com.auth0.jwk.Jwk
 import com.auth0.jwk.JwkProviderBuilder
-import com.auth0.jwt.algorithms.Algorithm
 import com.fasterxml.jackson.databind.SerializationFeature
 import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import io.ktor.application.*
@@ -37,8 +35,6 @@ import org.slf4j.LoggerFactory
 import org.slf4j.event.Level
 import java.io.File
 import java.net.URL
-import java.security.interfaces.ECPublicKey
-import java.security.interfaces.RSAPublicKey
 import java.util.*
 
 private val authorizedUsers = listOf("S150563", "T149391", "E117646", "S151395", "H131243", "T127350", "S122648", "G153965")
@@ -126,17 +122,6 @@ fun Application.spade() {
             environment.config.property("clientSecret").getString())
       )
    }
-}
-
-private fun Jwk.makeAlgorithm(): Algorithm = when (algorithm) {
-   "RS256" -> Algorithm.RSA256(publicKey as RSAPublicKey, null)
-   "RS384" -> Algorithm.RSA384(publicKey as RSAPublicKey, null)
-   "RS512" -> Algorithm.RSA512(publicKey as RSAPublicKey, null)
-   "ES256" -> Algorithm.ECDSA256(publicKey as ECPublicKey, null)
-   "ES384" -> Algorithm.ECDSA384(publicKey as ECPublicKey, null)
-   "ES512" -> Algorithm.ECDSA512(publicKey as ECPublicKey, null)
-   null -> Algorithm.RSA256(publicKey as RSAPublicKey, null)
-   else -> throw IllegalArgumentException("Unsupported algorithm $algorithm")
 }
 
 @KtorExperimentalAPI
