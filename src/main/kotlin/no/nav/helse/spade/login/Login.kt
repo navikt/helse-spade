@@ -62,8 +62,7 @@ fun verifyJWT(token: String, requiredIssuer: String, requiredAudience: String, j
          .token
    }.toEither()
 
-private fun myBaseUrl(req: ApplicationRequest) =
-   "${req.origin.scheme}://${req.host()}"
+private fun myBaseUrl(req: ApplicationRequest) = "https://${req.host()}"
 
 private fun wasRequestSuccessful(params: Parameters) =
    Try {
