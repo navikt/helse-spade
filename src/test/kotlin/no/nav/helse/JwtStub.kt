@@ -30,6 +30,7 @@ class JwtStub(private val issuer: String, private val baseUrl: String) {
          .withIssuer(issuer)
          .withKeyId("key-1234")
          .withSubject(subject)
+         .withClaim("NAVident", subject)
          .sign(algorithm)
    }
 

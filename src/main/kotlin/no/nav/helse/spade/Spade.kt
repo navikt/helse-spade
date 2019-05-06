@@ -1,28 +1,44 @@
 package no.nav.helse.spade
 
-import com.auth0.jwk.*
-import com.fasterxml.jackson.databind.*
-import com.fasterxml.jackson.datatype.jsr310.*
+import com.auth0.jwk.Jwk
+import com.auth0.jwk.JwkProviderBuilder
+import com.auth0.jwt.algorithms.Algorithm
+import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import io.ktor.application.*
-import io.ktor.auth.*
-import io.ktor.auth.jwt.*
-import io.ktor.features.*
-import io.ktor.jackson.*
-import io.ktor.request.*
-import io.ktor.routing.*
-import io.ktor.util.*
-import no.nav.helse.http.*
-import no.nav.helse.nais.*
-import no.nav.helse.spade.behandlinger.*
-import no.nav.helse.spade.login.*
-import org.apache.kafka.clients.*
-import org.apache.kafka.common.config.*
-import org.apache.kafka.streams.*
-import org.apache.kafka.streams.errors.*
-import org.slf4j.*
-import org.slf4j.event.*
-import java.io.*
-import java.net.*
+import io.ktor.auth.Authentication
+import io.ktor.auth.authenticate
+import io.ktor.auth.jwt.JWTPrincipal
+import io.ktor.auth.jwt.jwt
+import io.ktor.auth.principal
+import io.ktor.features.CallId
+import io.ktor.features.CallLogging
+import io.ktor.features.ContentNegotiation
+import io.ktor.features.callIdMdc
+import io.ktor.jackson.jackson
+import io.ktor.request.path
+import io.ktor.request.uri
+import io.ktor.routing.routing
+import io.ktor.util.KtorExperimentalAPI
+import no.nav.helse.http.getJson
+import no.nav.helse.nais.nais
+import no.nav.helse.spade.behandlinger.BehandlingerService
+import no.nav.helse.spade.behandlinger.BehandlingerStream
+import no.nav.helse.spade.behandlinger.KafkaBehandlingerRepository
+import no.nav.helse.spade.behandlinger.behandlinger
+import no.nav.helse.spade.login.OidcInfo
+import no.nav.helse.spade.login.login
+import org.apache.kafka.clients.CommonClientConfigs
+import org.apache.kafka.common.config.SaslConfigs
+import org.apache.kafka.common.config.SslConfigs
+import org.apache.kafka.streams.StreamsConfig
+import org.apache.kafka.streams.errors.LogAndFailExceptionHandler
+import org.slf4j.LoggerFactory
+import org.slf4j.event.Level
+import java.io.File
+import java.net.URL
+import java.security.interfaces.ECPublicKey
+import java.security.interfaces.RSAPublicKey
 import java.util.*
 
 private val authorizedUsers = listOf("S150563", "T149391", "E117646", "S151395", "H131243", "T127350", "S122648", "G153965")
@@ -50,7 +66,7 @@ fun Application.spade() {
          verifier(jwkProvider, "${environment.config.property("issuer").getString()}")
          realm = environment.config.propertyOrNull("ktor.application.id")?.getString() ?: "Application"
          validate { credentials ->
-            if (credentials.payload.subject in authorizedUsers) {
+            if (credentials.payload.getClaim("NAVident").asString() in authorizedUsers) {
                JWTPrincipal(credentials.payload)
             } else {
                log.info("${credentials.payload.subject} is not authorized to use this app, denying access")
@@ -110,6 +126,17 @@ fun Application.spade() {
             environment.config.property("clientSecret").getString())
       )
    }
+}
+
+private fun Jwk.makeAlgorithm(): Algorithm = when (algorithm) {
+   "RS256" -> Algorithm.RSA256(publicKey as RSAPublicKey, null)
+   "RS384" -> Algorithm.RSA384(publicKey as RSAPublicKey, null)
+   "RS512" -> Algorithm.RSA512(publicKey as RSAPublicKey, null)
+   "ES256" -> Algorithm.ECDSA256(publicKey as ECPublicKey, null)
+   "ES384" -> Algorithm.ECDSA384(publicKey as ECPublicKey, null)
+   "ES512" -> Algorithm.ECDSA512(publicKey as ECPublicKey, null)
+   null -> Algorithm.RSA256(publicKey as RSAPublicKey, null)
+   else -> throw IllegalArgumentException("Unsupported algorithm $algorithm")
 }
 
 @KtorExperimentalAPI
