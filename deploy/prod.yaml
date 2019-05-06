@@ -39,8 +39,6 @@ spec:
    env:
       - name: KAFKA_BOOTSTRAP_SERVERS
         value: a01apvl00145.adeo.no:8443,a01apvl00146.adeo.no:8443,a01apvl00147.adeo.no:8443,a01apvl00148.adeo.no:8443,a01apvl00149.adeo.no:8443,a01apvl00150.adeo.no:8443
-      - name: JWKS_URL
-        value: http://security-token-service/rest/v1/sts/jwks
-      - name: JWT_ISSUER
-        value: https://security-token-service.nais.adeo.no
+      - name: OIDC_CONFIG_URL
+        value: https://login.microsoftonline.com/common/.well-known/openid-configuration
 
