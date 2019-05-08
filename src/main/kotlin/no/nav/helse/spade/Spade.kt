@@ -60,7 +60,11 @@ fun Application.spade() {
       }
    }
 
-   install(CORS)
+   install(CORS) {
+      host(host = "nais.adeo.no", schemes = listOf("https"), subDomains = listOf("spade"))
+      host(host = "nais.preprod.local", schemes = listOf("https"), subDomains = listOf("spade"))
+      host(host = "localhost", schemes = listOf("http", "https"))
+   }
 
    nais({
       stream.state().isRunning
