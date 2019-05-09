@@ -47,7 +47,7 @@ fun Application.spade() {
 
    install(Authentication) {
       jwt {
-         verifier(jwkProvider, "${environment.config.property("issuer").getString()}")
+         verifier(jwkProvider, environment.config.property("issuer").getString())
          realm = environment.config.propertyOrNull("ktor.application.id")?.getString() ?: "Application"
          validate { credentials ->
             if (credentials.payload.getClaim("NAVident").asString() in authorizedUsers) {
@@ -64,6 +64,7 @@ fun Application.spade() {
       host(host = "nais.adeo.no", schemes = listOf("https"), subDomains = listOf("spade"))
       host(host = "nais.preprod.local", schemes = listOf("https"), subDomains = listOf("spade"))
       host(host = "localhost", schemes = listOf("http", "https"))
+      allowCredentials = true
    }
 
    nais({
@@ -79,7 +80,6 @@ fun Application.spade() {
    }
 
    intercept(ApplicationCallPipeline.Call) {
-      log.info("Origin: ${call.request.origin.host} ${call.request.origin.remoteHost}")
       call.principal<JWTPrincipal>()?.let { principal ->
          log.info("Bruker=\"${principal.payload.subject}\" gjør kall mot url=\"${call.request.uri}\"")
          auditLog.info("Bruker=\"${principal.payload.subject}\" gjør kall mot url=\"${call.request.uri}\"")
