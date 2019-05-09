@@ -62,7 +62,9 @@ fun Application.spade() {
 
    install(CORS) {
       host(host = "nais.adeo.no", schemes = listOf("https"), subDomains = listOf("speil"))
+      host(host = "nais.adeo.no", schemes = listOf("https"), subDomains = listOf("spade"))
       host(host = "nais.preprod.local", schemes = listOf("https"), subDomains = listOf("speil"))
+      host(host = "nais.preprod.local", schemes = listOf("https"), subDomains = listOf("spade"))
       host(host = "localhost", schemes = listOf("http", "https"))
       allowCredentials = true
    }
