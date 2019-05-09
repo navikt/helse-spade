@@ -156,6 +156,7 @@ class SpadeComponentTest {
             handleRequest(HttpMethod.Get, "/api/behandlinger/$aktørId") {
                addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
+               addHeader(HttpHeaders.Origin, "http://localhost")
             }.apply {
                if (response.status() == HttpStatusCode.ServiceUnavailable) {
                   Thread.sleep(1000)

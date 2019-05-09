@@ -82,6 +82,7 @@ fun Application.spade() {
    }
 
    intercept(ApplicationCallPipeline.Call) {
+      log.info("Request has origin ${call.request.origin}")
       call.principal<JWTPrincipal>()?.let { principal ->
          log.info("Bruker=\"${principal.payload.subject}\" gjør kall mot url=\"${call.request.uri}\"")
          auditLog.info("Bruker=\"${principal.payload.subject}\" gjør kall mot url=\"${call.request.uri}\"")
