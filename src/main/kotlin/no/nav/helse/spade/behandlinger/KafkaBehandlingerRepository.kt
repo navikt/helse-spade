@@ -1,9 +1,11 @@
 package no.nav.helse.spade.behandlinger
 
-import arrow.core.*
-import no.nav.helse.*
-import org.apache.kafka.streams.errors.*
-import org.slf4j.*
+import arrow.core.Either
+import arrow.core.left
+import arrow.core.right
+import no.nav.helse.Feilårsak
+import org.apache.kafka.streams.errors.InvalidStateStoreException
+import org.slf4j.LoggerFactory
 
 class KafkaBehandlingerRepository(stream: BehandlingerStream) {
 
@@ -27,12 +29,23 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
       Either.Left(Feilårsak.UkjentFeil)
    }
 
-   fun getListOfKeys(): Either<Feilårsak, List<String>> = try {
-      val resultsList = mutableListOf<String>()
-      stateStore.all().forEach {
-         resultsList.add(it.key)
+   fun getBehandlingerForSøknad(søknadId: String) = try {
+      stateStore.all().asSequence().filter { keyval ->
+         keyval.value.any {
+            it.has("originalSøknad") && it.path("originalSøknad").has("id")
+               && it.path("originalSøknad").get("id").textValue() == søknadId
+         }
+      }.let {
+         it
+      }.flatMap {
+         it.value.asSequence()
+      }.toList().let {
+         if (it.isEmpty()) {
+            Feilårsak.IkkeFunnet.left()
+         } else {
+            it.right()
+         }
       }
-      Either.Right(resultsList.toList())
    } catch (err: InvalidStateStoreException) {
       log.info("state store is not available yet", err)
       Either.Left(Feilårsak.MidlertidigUtilgjengelig)

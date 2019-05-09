@@ -1,9 +1,10 @@
 package no.nav.helse.spade.behandlinger
 
-import com.fasterxml.jackson.databind.*
-import io.ktor.application.*
-import io.ktor.routing.*
-import no.nav.helse.*
+import com.fasterxml.jackson.databind.JsonNode
+import io.ktor.application.call
+import io.ktor.routing.Route
+import io.ktor.routing.get
+import no.nav.helse.respond
 
 fun Route.behandlinger(service: BehandlingerService) {
    get("api/behandlinger/{aktørId}") {
@@ -12,11 +13,10 @@ fun Route.behandlinger(service: BehandlingerService) {
          .respond(call)
    }
 
-   get("api/behandlinger") {
-      service.getAvailableActors().map { AktørerResponse(it) }
+   get("api/søknader/{søknadId}") {
+      service.getBehandlingerForSøknad(call.parameters["søknadId"]!!).map { BehandlingerResponse(it) }
          .respond(call)
    }
 }
 
 data class BehandlingerResponse(val behandlinger: List<JsonNode>)
-data class AktørerResponse(val aktører: List<String>)

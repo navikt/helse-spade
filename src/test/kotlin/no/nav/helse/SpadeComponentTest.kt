@@ -114,8 +114,8 @@ class SpadeComponentTest {
 
    @Test
    @KtorExperimentalAPI
-   fun `skal svare med alle behandlinger for en aktør`() {
-      val aktørId = "1234567890123"
+   fun `skal svare med alle behandlinger for en søknad`() {
+      val søknadId = "1111111111"
       val jwkStub = JwtStub("test issuer", server.baseUrl())
       val token = jwkStub.createTokenFor("S150563")
 
@@ -148,19 +148,19 @@ class SpadeComponentTest {
             }
          }) {
 
-         fun makeRequest(aktørId: String, maxRetryCount: Int, retryCount: Int = 0) {
+         fun makeRequest(søknadId: String, maxRetryCount: Int, retryCount: Int = 0) {
             if (maxRetryCount == retryCount) {
                fail { "After $maxRetryCount tries the endpoint is still not available" }
             }
 
-            handleRequest(HttpMethod.Get, "/api/behandlinger/$aktørId") {
+            handleRequest(HttpMethod.Get, "/api/søknader/$søknadId") {
                addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
                addHeader(HttpHeaders.Origin, "http://localhost")
             }.apply {
                if (response.status() == HttpStatusCode.ServiceUnavailable) {
                   Thread.sleep(1000)
-                  makeRequest(aktørId, maxRetryCount, retryCount + 1)
+                  makeRequest(søknadId, maxRetryCount, retryCount + 1)
                } else {
                   assertEquals(HttpStatusCode.OK, response.status())
 
@@ -177,7 +177,7 @@ class SpadeComponentTest {
             }
          }
 
-         makeRequest(aktørId, 20)
+         makeRequest(søknadId, 20)
       }
    }
 

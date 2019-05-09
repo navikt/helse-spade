@@ -4,5 +4,5 @@ class BehandlingerService(private val repository: KafkaBehandlingerRepository) {
 
    fun getBehandlingerForAktør(aktørId: String) = repository.getBehandlingerForAktør(aktørId)
 
-   fun getAvailableActors() = repository.getListOfKeys()
+   fun getBehandlingerForSøknad(søknadId: String) = repository.getBehandlingerForSøknad(søknadId)
 }

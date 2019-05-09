@@ -1,5 +1,6 @@
 {
   "originalSøknad": {
+    "id": "1111111111",
     "aktorId": "1234567890123",
     "status": "SENDT",
     "arbeidsgiver": {
