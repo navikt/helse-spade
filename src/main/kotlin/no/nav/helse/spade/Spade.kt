@@ -89,8 +89,6 @@ fun Application.spade() {
    }
 
    intercept(ApplicationCallPipeline.Call) {
-      call.request.headers.forEach { name, values -> log.info("$name: -> $values") }
-      log.info("Origin ${call.request.origin} -> ${call.response.status().toString()}")
       call.principal<JWTPrincipal>()?.let { principal ->
          log.info("Bruker=\"${principal.payload.getClaim("NAVident").asString()}\" gjør kall mot url=\"${call.request.uri}\"")
          auditLog.info("Bruker=\"${principal.payload.getClaim("NAVident").asString()}\" gjør kall mot url=\"${call.request.uri}\"")
