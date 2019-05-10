@@ -4,6 +4,7 @@ import com.auth0.jwt.JWT
 import com.auth0.jwt.algorithms.Algorithm
 import com.github.tomakehurst.wiremock.client.WireMock
 import kotlinx.io.core.String
+import java.math.*
 import java.security.KeyPairGenerator
 import java.security.interfaces.RSAPrivateKey
 import java.security.interfaces.RSAPublicKey
@@ -28,6 +29,7 @@ class JwtStub(private val issuer: String, private val baseUrl: String) {
 
       return JWT.create()
          .withIssuer(issuer)
+         .withAudience("el_cliento")
          .withKeyId("key-1234")
          .withSubject(subject)
          .withClaim("NAVident", subject)
@@ -50,10 +52,27 @@ class JwtStub(private val issuer: String, private val baseUrl: String) {
 """.trimIndent())
    )
 
+   fun stubbedInvalidJwkProvider() = WireMock.get(WireMock.urlPathEqualTo("/jwks")).willReturn(
+      WireMock.okJson("""
+{
+    "keys": [
+        {
+            "kty": "RSA",
+            "alg": "RS256",
+            "kid": "key-1234",
+            "e": "${String(Base64.getEncoder().encode(BigInteger("12345678910").toByteArray()))}",
+            "n": "${String(Base64.getEncoder().encode(publicKey.modulus.toByteArray()))}"
+        }
+    ]
+}
+""".trimIndent())
+   )
+
    fun stubbedConfigProvider() = WireMock.get(WireMock.urlPathEqualTo("/config")).willReturn(
       WireMock.okJson("""
 {
-    "jwks_uri": "$baseUrl/jwks"
+    "jwks_uri": "$baseUrl/jwks",
+    "token_endpoint": "$baseUrl/token"
 }
 """.trimIndent())
    )
