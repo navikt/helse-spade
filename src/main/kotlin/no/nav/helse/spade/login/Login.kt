@@ -5,7 +5,6 @@ import com.auth0.jwk.*
 import com.auth0.jwt.*
 import com.auth0.jwt.algorithms.*
 import io.ktor.application.*
-import io.ktor.features.*
 import io.ktor.http.*
 import io.ktor.request.*
 import io.ktor.response.*
@@ -34,18 +33,20 @@ fun Route.login(oidcInfo: OidcInfo) {
    post("/callback") {
       val params = call.receiveParameters()
 
-      wasRequestSuccessful(params)
+      ifRequestSuccessful(params)
          .flatMap {
             verifyJWT(params["id_token"] ?: "", oidcInfo.requiredIssuer, oidcInfo.clientId, jwkProvider)
          }.flatMap {
-            fireTokenRequest(
+            requestIdToken(
                oidcInfo.provider["token_endpoint"]?.toString() ?: "",
                oidcInfo,
-               params["code"] ?: "",
+               params["code"].orEmpty(),
                "${myBaseUrl(call.request)}/callback")
+         }.flatMap {
+            verifyJWT(it["id_token"]?.toString() ?: "", oidcInfo.requiredIssuer, oidcInfo.clientId, jwkProvider)
          }.fold(
             { throwable -> call.respond(HttpStatusCode.BadRequest, throwable.message ?: "unknown error") },
-            { call.respond(it["id_token"] ?: "should have been an id token") }
+            { call.respond(it) }
          )
    }
 }
@@ -64,14 +65,14 @@ fun verifyJWT(token: String, requiredIssuer: String, requiredAudience: String, j
 
 private fun myBaseUrl(req: ApplicationRequest) = "https://${req.host()}"
 
-private fun wasRequestSuccessful(params: Parameters) =
+private fun ifRequestSuccessful(params: Parameters) =
    Try {
       params["error"]?.let {
          throw RuntimeException(params["error_description"])
       }
    }.toEither()
 
-private fun fireTokenRequest(url: String, oidcInfo: OidcInfo, code: String, redirectUrl: String) =
+private fun requestIdToken(url: String, oidcInfo: OidcInfo, code: String, redirectUrl: String) =
    url.post(listOf(
          "client_id" to oidcInfo.clientId,
          "scope" to "https://graph.microsoft.com/user.read",
