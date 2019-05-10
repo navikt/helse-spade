@@ -153,7 +153,7 @@ class SpadeComponentTest {
                fail { "After $maxRetryCount tries the endpoint is still not available" }
             }
 
-            handleRequest(HttpMethod.Get, "/api/søknader/$søknadId") {
+            handleRequest(HttpMethod.Get, "/api/soknader/$søknadId") {
                addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
                addHeader(HttpHeaders.Origin, "http://localhost")
