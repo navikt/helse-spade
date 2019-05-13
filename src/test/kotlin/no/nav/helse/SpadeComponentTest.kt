@@ -1,33 +1,25 @@
 package no.nav.helse
 
-import com.fasterxml.jackson.core.type.TypeReference
-import com.fasterxml.jackson.databind.JsonNode
-import com.github.tomakehurst.wiremock.WireMockServer
-import com.github.tomakehurst.wiremock.client.WireMock
+import com.fasterxml.jackson.core.type.*
+import com.fasterxml.jackson.databind.*
+import com.github.tomakehurst.wiremock.*
+import com.github.tomakehurst.wiremock.client.*
 import com.github.tomakehurst.wiremock.client.WireMock.*
-import com.github.tomakehurst.wiremock.core.WireMockConfiguration
-import io.ktor.config.MapApplicationConfig
-import io.ktor.http.ContentType
-import io.ktor.http.HttpHeaders
-import io.ktor.http.HttpMethod
-import io.ktor.http.HttpStatusCode
-import io.ktor.server.engine.connector
+import com.github.tomakehurst.wiremock.core.*
+import io.ktor.config.*
+import io.ktor.http.*
+import io.ktor.server.engine.*
 import io.ktor.server.testing.*
-import io.ktor.util.KtorExperimentalAPI
-import no.nav.common.JAASCredential
-import no.nav.common.KafkaEnvironment
-import no.nav.helse.serde.JsonNodeSerializer
-import no.nav.helse.serde.defaultObjectMapper
-import no.nav.helse.spade.spade
-import org.apache.kafka.clients.CommonClientConfigs
-import org.apache.kafka.clients.producer.KafkaProducer
-import org.apache.kafka.clients.producer.ProducerConfig
-import org.apache.kafka.clients.producer.ProducerRecord
-import org.apache.kafka.common.config.SaslConfigs
+import io.ktor.util.*
+import no.nav.common.*
+import no.nav.helse.serde.*
+import no.nav.helse.spade.*
+import org.apache.kafka.clients.*
+import org.apache.kafka.clients.producer.*
+import org.apache.kafka.common.config.*
 import org.junit.jupiter.api.*
-import org.junit.jupiter.api.Assertions.assertEquals
-import org.junit.jupiter.api.Assertions.assertTrue
-import java.io.File
+import org.junit.jupiter.api.Assertions.*
+import java.io.*
 import java.util.*
 
 class SpadeComponentTest {
@@ -177,57 +169,6 @@ class SpadeComponentTest {
          }
 
          makeRequest(søknadId, 20)
-      }
-   }
-
-   @Test
-   @KtorExperimentalAPI
-   fun `oidc callback med ugyldig signatur blir avvist`() {
-      val jwkStub = JwtStub("test issuer", server.baseUrl())
-      val token = jwkStub.createTokenFor("S150563")
-
-      stubFor(jwkStub.stubbedInvalidJwkProvider())
-      stubFor(jwkStub.stubbedConfigProvider())
-      stubFor(post(urlEqualTo("/token"))
-         .willReturn(aResponse()
-            .withStatus(200)
-            .withHeader("Content-Type", "application/json")
-            .withBody("""{"id_token": "$token"}""")))
-
-      withApplication(
-         environment = createTestEnvironment {
-            with (config as MapApplicationConfig) {
-               put("oidcConfigUrl", server.baseUrl() + "/config")
-               put("issuer", "test issuer")
-               put("clientId", "el_cliento")
-               put("clientSecret", "el_secreto")
-
-               put("kafka.app-id", "spade-v1")
-               put("kafka.store-name", "sykepenger-state-store")
-               put("kafka.bootstrap-servers", embeddedEnvironment.brokersURL)
-               put("kafka.username", username)
-               put("kafka.password", password)
-            }
-
-            connector {
-               port = 8080
-            }
-
-            module {
-               spade()
-            }
-         }) {
-
-         handleRequest(HttpMethod.Post, "/callback") {
-            addHeader(HttpHeaders.Authorization, "Bearer $token")
-            addHeader(HttpHeaders.Origin, "http://localhost")
-            addHeader(HttpHeaders.ContentType,
-               "${ContentType.Application.FormUrlEncoded.contentType}/" +
-                  "${ContentType.Application.FormUrlEncoded.contentSubtype}")
-            setBody("""id_token=$token""")
-         }.apply {
-            assertEquals(400, response.status()?.value)
-         }
       }
    }
 

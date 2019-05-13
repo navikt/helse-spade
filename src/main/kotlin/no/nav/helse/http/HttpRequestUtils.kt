@@ -6,11 +6,6 @@ import com.github.kittinunf.fuel.core.*
 import org.json.simple.*
 import org.json.simple.parser.*
 
-fun String.post(params: List<Pair<String, String>>) =
-   Try {
-      toJson(this.httpPost(params).responseString())
-   }.toEither()
-
 fun String.getJson() =
    Try {
       toJson(this.httpGet().responseString())
