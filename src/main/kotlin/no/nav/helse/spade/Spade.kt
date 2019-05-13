@@ -30,7 +30,7 @@ private val auditLog = LoggerFactory.getLogger("auditLogger")
 
 @KtorExperimentalAPI
 fun Application.spade() {
-   val idProvider = ("${environment.config.property("oidcConfigUrl").getString()}?appid=${environment.config.property("clientId")?.getString()}")
+   val idProvider = ("${environment.config.property("oidcConfigUrl").getString()}?appid=${environment.config.property("clientId").getString()}")
       .getJson()
       .fold(
          { throwable -> throw throwable },
