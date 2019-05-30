@@ -54,7 +54,8 @@ class JwtStub(private val issuer: String, private val baseUrl: String) {
       WireMock.okJson("""
 {
     "jwks_uri": "$baseUrl/jwks",
-    "token_endpoint": "$baseUrl/token"
+    "token_endpoint": "$baseUrl/token",
+    "issuer": "$issuer"
 }
 """.trimIndent())
    )

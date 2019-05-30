@@ -30,10 +30,10 @@ private val auditLog = LoggerFactory.getLogger("auditLogger")
 
 @KtorExperimentalAPI
 fun Application.spade() {
-   val idProvider = ("${environment.config.property("oidcConfigUrl").getString()}?appid=${environment.config.property("clientId").getString()}")
+   val idProvider = environment.config.property("oidcConfigUrl").getString()
       .getJson()
       .fold(
-         { throwable -> throw throwable },
+         { throw it },
          { it }
       )
 
@@ -46,7 +46,7 @@ fun Application.spade() {
 
    install(Authentication) {
       jwt {
-         verifier(jwkProvider, environment.config.property("issuer").getString())
+         verifier(jwkProvider, idProvider["issuer"].toString())
          realm = environment.config.propertyOrNull("ktor.application.id")?.getString() ?: "Application"
          validate { credentials ->
             if (credentials.payload.getClaim("NAVident").asString() in authorizedUsers) {
