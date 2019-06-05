@@ -22,12 +22,12 @@ class JwtStub(private val issuer: String, private val baseUrl: String) {
       publicKey = keyPair.public as RSAPublicKey
    }
 
-   fun createTokenFor(subject: String): String {
+   fun createTokenFor(subject: String, audience: String? = null): String {
       val algorithm = Algorithm.RSA256(publicKey, privateKey)
 
       return JWT.create()
          .withIssuer(issuer)
-         .withAudience("el_cliento")
+         .withAudience(audience ?: "el_cliento")
          .withKeyId("key-1234")
          .withSubject(subject)
          .withClaim("NAVident", subject)

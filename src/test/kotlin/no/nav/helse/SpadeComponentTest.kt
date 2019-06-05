@@ -98,8 +98,58 @@ class SpadeComponentTest {
             }
          }) {
          handleRequest(HttpMethod.Get, "/api/behandlinger/$aktørId") {}.apply {
-            Assertions.assertEquals(HttpStatusCode.Unauthorized, response.status())
+            assertEquals(HttpStatusCode.Unauthorized, response.status())
          }
+      }
+   }
+
+   @Test
+   @KtorExperimentalAPI
+   fun `forespørsel med feil audience skal svare med 401`() {
+      val søknadId = "1111111111"
+      val jwkStub = JwtStub("test issuer", server.baseUrl())
+      val token = jwkStub.createTokenFor("S150563", "wrong_audience")
+
+      produserEnOKBehandling()
+
+      stubFor(jwkStub.stubbedJwkProvider())
+      stubFor(jwkStub.stubbedConfigProvider())
+
+      withApplication(
+         environment = createTestEnvironment {
+            with (config as MapApplicationConfig) {
+               put("oidcConfigUrl", server.baseUrl() + "/config")
+               put("issuer", "test issuer")
+               put("clientId", "el_cliento")
+               put("clientSecret", "el_secreto")
+
+               put("kafka.app-id", "spade-v1")
+               put("kafka.store-name", "sykepenger-state-store")
+               put("kafka.bootstrap-servers", embeddedEnvironment.brokersURL)
+               put("kafka.username", username)
+               put("kafka.password", password)
+            }
+
+            connector {
+               port = 8080
+            }
+
+            module {
+               spade()
+            }
+         }) {
+
+         fun makeRequest(søknadId: String) {
+            handleRequest(HttpMethod.Get, "/api/soknader/$søknadId") {
+               addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
+               addHeader(HttpHeaders.Authorization, "Bearer $token")
+               addHeader(HttpHeaders.Origin, "http://localhost")
+            }.apply {
+               assertEquals(HttpStatusCode.Unauthorized, response.status())
+            }
+         }
+
+         makeRequest(søknadId)
       }
    }
 
@@ -197,4 +247,5 @@ class SpadeComponentTest {
    }
 
    private fun String.readResource() = object {}.javaClass.getResource(this)?.readText(Charsets.UTF_8) ?: fail { "did not find <$this>" }
+
 }

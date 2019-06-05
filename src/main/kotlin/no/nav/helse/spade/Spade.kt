@@ -49,7 +49,8 @@ fun Application.spade() {
          verifier(jwkProvider, idProvider["issuer"].toString())
          realm = environment.config.propertyOrNull("ktor.application.id")?.getString() ?: "Application"
          validate { credentials ->
-            if (credentials.payload.getClaim("NAVident").asString() in authorizedUsers) {
+            if (credentials.payload.getClaim("NAVident").asString() in authorizedUsers &&
+               environment.config.property("clientId").getString() in credentials.payload.audience) {
                JWTPrincipal(credentials.payload)
             } else {
                log.info("${credentials.payload.subject} is not authorized to use this app, denying access")
