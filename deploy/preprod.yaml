@@ -35,7 +35,8 @@ spec:
    prometheus:
       enabled: true
       path: /metrics
-   secrets: true
+   vault:
+      enabled: true
    webproxy: true
    env:
       - name: KAFKA_BOOTSTRAP_SERVERS
