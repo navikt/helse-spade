@@ -53,7 +53,7 @@ fun Application.spade() {
                environment.config.property("clientId").getString() in credentials.payload.audience) {
                JWTPrincipal(credentials.payload)
             } else {
-               log.info("${credentials.payload.subject} with audience ${credentials.payload.audience} " +
+               log.info("${credentials.payload.getClaim("NAVident").asString()} with audience ${credentials.payload.audience} " +
                   "is not authorized to use this app, denying access")
                null
             }
