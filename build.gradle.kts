@@ -14,6 +14,10 @@ val wireMockVersion = "2.23.2"
 val mockkVersion = "1.9.3"
 val nimbusVersion = "5.8.0.wso2v1"
 
+val vaultJdbcVersion = "1.3.1"
+val flywayVersion = "6.0.0-beta2"
+val hsqldbVersion= "2.5.0"
+
 plugins {
    kotlin("jvm") version "1.3.40"
 }
@@ -26,6 +30,7 @@ buildscript {
 
 dependencies {
    compile(kotlin("stdlib"))
+   
    compile("ch.qos.logback:logback-classic:1.2.3")
    compile("net.logstash.logback:logstash-logback-encoder:5.2")
    compile("com.papertrailapp:logback-syslog4j:1.0.0")
@@ -49,13 +54,16 @@ dependencies {
    compile("io.arrow-kt:arrow-core-data:$arrowVersion")
    compile("io.arrow-kt:arrow-effects-data:$arrowVersion")
 
+   compile("no.nav:vault-jdbc:$vaultJdbcVersion")
+   compile("org.flywaydb:flyway-core:$flywayVersion")
+
    testCompile("io.mockk:mockk:$mockkVersion")
    testCompile ("no.nav:kafka-embedded-env:2.0.1")
    testCompile("org.junit.jupiter:junit-jupiter-api:$junitJupiterVersion")
    testCompile("org.junit.jupiter:junit-jupiter-params:$junitJupiterVersion")
    testCompile("org.assertj:assertj-core:$assertJVersion")
    testCompile("org.wso2.orbit.com.nimbusds:nimbus-jose-jwt:$nimbusVersion")
-   testRuntime("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
+   testCompile("org.hsqldb:hsqldb:$hsqldbVersion")
 
    testCompile("com.github.tomakehurst:wiremock:$wireMockVersion") {
       exclude(group = "junit")
@@ -65,6 +73,8 @@ dependencies {
       exclude(group = "junit")
       exclude(group = "org.eclipse.jetty") // conflicts with WireMock
    }
+
+   testRuntime("org.junit.jupiter:junit-jupiter-engine:$junitJupiterVersion")
 }
 
 repositories {

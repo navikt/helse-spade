@@ -50,6 +50,8 @@ fun Environment.configureApplicationEnvironment(builder: ApplicationEngineEnviro
 
       put("oidcConfigUrl", oidcConfigUrl)
       put("clientId", clientId)
+
+      dbVaultMountPath?.let { put("db.vault.mountPath", it) }
    }
 }
 
