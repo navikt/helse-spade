@@ -14,6 +14,7 @@ import io.ktor.util.*
 import no.nav.common.*
 import no.nav.helse.serde.*
 import no.nav.helse.spade.*
+import no.nav.helse.spade.feedback.*
 import org.apache.kafka.clients.*
 import org.apache.kafka.clients.producer.*
 import org.apache.kafka.common.config.*
@@ -29,6 +30,14 @@ class SpadeComponentTest {
       private const val password = "kafkaclient"
 
       val server: WireMockServer = WireMockServer(WireMockConfiguration.options().dynamicPort())
+
+      private val dbConf = DatabaseConfig(
+         dbUrl = "jdbc:hsqldb:mem:spade",
+         useVault = false,
+         dbUsername = "sa",
+         dbPassword = ""
+      )
+      val database = createDatasource(dbConf)
 
       private val embeddedEnvironment = KafkaEnvironment(
          users = listOf(JAASCredential(username, password)),
@@ -94,7 +103,7 @@ class SpadeComponentTest {
             }
 
             module {
-               spade()
+               spade(database)
             }
          }) {
          handleRequest(HttpMethod.Get, "/api/behandlinger/$aktørId") {}.apply {
@@ -128,6 +137,8 @@ class SpadeComponentTest {
                put("kafka.bootstrap-servers", embeddedEnvironment.brokersURL)
                put("kafka.username", username)
                put("kafka.password", password)
+               put("DB_CREDS_PATH_ADMIN", "adminpath")
+               put("DB_CREDS_PATH_USER", "userpath")
             }
 
             connector {
@@ -135,7 +146,7 @@ class SpadeComponentTest {
             }
 
             module {
-               spade()
+               spade(database)
             }
          }) {
 
@@ -178,6 +189,8 @@ class SpadeComponentTest {
                put("kafka.bootstrap-servers", embeddedEnvironment.brokersURL)
                put("kafka.username", username)
                put("kafka.password", password)
+               put("DB_CREDS_PATH_ADMIN", "adminpath")
+               put("DB_CREDS_PATH_USER", "userpath")
             }
 
             connector {
@@ -185,7 +198,7 @@ class SpadeComponentTest {
             }
 
             module {
-               spade()
+               spade(database)
             }
          }) {
 

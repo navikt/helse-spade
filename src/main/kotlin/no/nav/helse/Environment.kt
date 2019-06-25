@@ -10,7 +10,8 @@ data class Environment(
    val oidcConfigUrl: String = getEnvVar("OIDC_CONFIG_URL"),
    val clientId: String = getEnvVar("CLIENT_ID"),
 
-   val dbVaultMountPath: String? = getOptionalEnvVar("DB_VAULT_MOUNT_PATH")
+   val dbVaultMountPathAdmin: String? = getOptionalEnvVar("DB_CREDS_PATH_ADMIN"),
+   val dbVaultMountPathUser: String? = getOptionalEnvVar("DB_CREDS_PATH_USER")
 )
 
 private fun getEnvVar(varName: String) = getOptionalEnvVar(varName) ?: throw Exception("mangler verdi for $varName")

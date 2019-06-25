@@ -10,8 +10,8 @@ data class DatabaseConfig(
    val useVault: Boolean = true,
    val vaultMountpath: String? = null,
    val dbUrl: String? = null,
-   val dbUsername: String,
-   val dbPassword: String
+   val dbUsername: String? = null,
+   val dbPassword: String? = null
 )
 
 fun migrate(dataSource: DataSource) {

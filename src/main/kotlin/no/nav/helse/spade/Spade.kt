@@ -14,6 +14,7 @@ import io.ktor.util.*
 import no.nav.helse.http.*
 import no.nav.helse.nais.*
 import no.nav.helse.spade.behandlinger.*
+import no.nav.helse.spade.feedback.*
 import org.apache.kafka.clients.*
 import org.apache.kafka.common.config.*
 import org.apache.kafka.streams.*
@@ -23,13 +24,15 @@ import org.slf4j.event.*
 import java.io.*
 import java.net.*
 import java.util.*
+import javax.sql.*
 
 private val authorizedUsers = listOf("S150563", "T149391", "E117646", "S151395", "H131243", "T127350", "S122648", "G153965")
 
 private val auditLog = LoggerFactory.getLogger("auditLogger")
 
 @KtorExperimentalAPI
-fun Application.spade() {
+fun Application.spade(database: DataSource) {
+   log.info("Starting spade with database $database")
    val idProvider = environment.config.property("oidcConfigUrl").getString()
       .getJson()
       .fold(

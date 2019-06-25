@@ -7,6 +7,7 @@ import io.ktor.server.engine.connector
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.util.*
+import no.nav.helse.spade.feedback.*
 import no.nav.helse.spade.spade
 import java.util.concurrent.TimeUnit
 
@@ -31,8 +32,13 @@ fun createApplicationEnvironment(env: Environment) = applicationEngineEnvironmen
       port = 8080
    }
 
+   val dbAsAdmin = DatabaseConfig(admin = true, vaultMountpath = env.dbVaultMountPathAdmin)
+   val dbAsRegularUser = DatabaseConfig(admin = false, vaultMountpath = env.dbVaultMountPathUser)
+   createDatasource(dbAsAdmin).let {
+      migrate(it)
+   }
    module {
-      spade()
+      spade(createDatasource(dbAsRegularUser))
    }
 }
 
@@ -51,7 +57,8 @@ fun Environment.configureApplicationEnvironment(builder: ApplicationEngineEnviro
       put("oidcConfigUrl", oidcConfigUrl)
       put("clientId", clientId)
 
-      dbVaultMountPath?.let { put("db.vault.mountPath", it) }
+      dbVaultMountPathAdmin?.let { put("db.vault.path.admin", it) }
+      dbVaultMountPathUser?.let { put("db.vault.path.user", it) }
    }
 }
 
