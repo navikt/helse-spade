@@ -1,7 +1,7 @@
 create sequence spade_id_seq;
 
 create table feedback (
-  behandling_id bigint not null default nextval('spade_id_seq'),
+  behandling_id varchar(100) not null,
   when_given timestamp not null,
   element varchar(100) not null,
   reason varchar(100) not null,

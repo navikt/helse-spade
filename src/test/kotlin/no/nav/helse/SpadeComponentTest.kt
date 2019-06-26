@@ -31,13 +31,7 @@ class SpadeComponentTest {
 
       val server: WireMockServer = WireMockServer(WireMockConfiguration.options().dynamicPort())
 
-      private val dbConf = DatabaseConfig(
-         dbUrl = "jdbc:hsqldb:mem:spade",
-         useVault = false,
-         dbUsername = "sa",
-         dbPassword = ""
-      )
-      val database = createDatasource(dbConf)
+      val database = createRegularDatasource("jdbc:hsqldb:mem:spade", "sa", "")
 
       private val embeddedEnvironment = KafkaEnvironment(
          users = listOf(JAASCredential(username, password)),

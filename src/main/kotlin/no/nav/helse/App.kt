@@ -15,6 +15,10 @@ import java.util.concurrent.TimeUnit
 fun main() {
    val env = Environment()
 
+   createVaultifiedDatasource(true, env.dbVaultMountPathAdmin!!).let {
+      migrate(it)
+   }
+
    embeddedServer(Netty, createApplicationEnvironment(env)).let { app ->
       app.start(wait = false)
 
@@ -32,13 +36,8 @@ fun createApplicationEnvironment(env: Environment) = applicationEngineEnvironmen
       port = 8080
    }
 
-   val dbAsAdmin = DatabaseConfig(admin = true, vaultMountpath = env.dbVaultMountPathAdmin)
-   val dbAsRegularUser = DatabaseConfig(admin = false, vaultMountpath = env.dbVaultMountPathUser)
-   createDatasource(dbAsAdmin).let {
-      migrate(it)
-   }
    module {
-      spade(createDatasource(dbAsRegularUser))
+      spade(createVaultifiedDatasource(false, env.dbVaultMountPathAdmin!!))
    }
 }
 

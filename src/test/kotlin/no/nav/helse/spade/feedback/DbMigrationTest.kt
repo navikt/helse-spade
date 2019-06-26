@@ -15,13 +15,7 @@ class DbMigrationTest {
       @JvmStatic
       fun setup() {
          Class.forName("org.hsqldb.jdbc.JDBCDriver")
-         val dbConf = DatabaseConfig(
-            dbUrl = "jdbc:hsqldb:mem:spade",
-            useVault = false,
-            dbUsername = "sa",
-            dbPassword = ""
-         )
-         dataSource = createDatasource(dbConf)
+         dataSource = createRegularDatasource("jdbc:hsqldb:mem:spade", "sa", "")
          dataSource.connection.use { conn ->
             conn.createStatement().use { stmt ->
                stmt.execute("SET DATABASE SQL SYNTAX PGS TRUE")

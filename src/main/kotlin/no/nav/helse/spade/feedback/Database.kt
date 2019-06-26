@@ -18,7 +18,15 @@ fun migrate(dataSource: DataSource) {
    Flyway.configure().dataSource(dataSource).locations("db/migrations").load().migrate()
 }
 
-fun createDatasource(dbConfig: DatabaseConfig) : DataSource {
+fun createVaultifiedDatasource(asAdmin: Boolean, vaultMountpath: String) =
+   createDatasource(DatabaseConfig(admin = asAdmin, vaultMountpath = vaultMountpath, useVault = true))
+
+fun createRegularDatasource(dbUrl: String, username: String, password: String) =
+   createDatasource(
+      DatabaseConfig(useVault = false, dbUrl = dbUrl, dbUsername = username, dbPassword = password)
+   )
+
+private fun createDatasource(dbConfig: DatabaseConfig) : DataSource {
    val role = "spade-${if (dbConfig.admin) "admin" else "user"}"
 
    val hikariConfig = HikariConfig().apply {
