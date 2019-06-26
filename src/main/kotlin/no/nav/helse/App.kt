@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit
 fun main() {
    val env = Environment()
 
-   createVaultifiedDatasource(true, env.dbVaultMountPathAdmin!!).let {
+   createVaultifiedDatasource(true, env.dbVaultMountPath!!).let {
       migrate(it)
    }
 
@@ -37,7 +37,7 @@ fun createApplicationEnvironment(env: Environment) = applicationEngineEnvironmen
    }
 
    module {
-      spade(createVaultifiedDatasource(false, env.dbVaultMountPathAdmin!!))
+      spade(createVaultifiedDatasource(false, env.dbVaultMountPath!!))
    }
 }
 
@@ -56,8 +56,7 @@ fun Environment.configureApplicationEnvironment(builder: ApplicationEngineEnviro
       put("oidcConfigUrl", oidcConfigUrl)
       put("clientId", clientId)
 
-      dbVaultMountPathAdmin?.let { put("db.vault.path.admin", it) }
-      dbVaultMountPathUser?.let { put("db.vault.path.user", it) }
+      dbVaultMountPath?.let { put("db.vault.path", it) }
    }
 }
 
