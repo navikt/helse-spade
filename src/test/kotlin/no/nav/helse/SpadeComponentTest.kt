@@ -14,7 +14,6 @@ import io.ktor.util.*
 import no.nav.common.*
 import no.nav.helse.serde.*
 import no.nav.helse.spade.*
-import no.nav.helse.spade.feedback.*
 import org.apache.kafka.clients.*
 import org.apache.kafka.clients.producer.*
 import org.apache.kafka.common.config.*
@@ -30,8 +29,6 @@ class SpadeComponentTest {
       private const val password = "kafkaclient"
 
       val server: WireMockServer = WireMockServer(WireMockConfiguration.options().dynamicPort())
-
-      val database = createRegularDatasource("jdbc:hsqldb:mem:spade", "sa", "")
 
       private val embeddedEnvironment = KafkaEnvironment(
          users = listOf(JAASCredential(username, password)),
@@ -97,7 +94,7 @@ class SpadeComponentTest {
             }
 
             module {
-               spade(database)
+               spade()
             }
          }) {
          handleRequest(HttpMethod.Get, "/api/behandlinger/$aktørId") {}.apply {
@@ -140,7 +137,7 @@ class SpadeComponentTest {
             }
 
             module {
-               spade(database)
+               spade()
             }
          }) {
 
@@ -192,7 +189,7 @@ class SpadeComponentTest {
             }
 
             module {
-               spade(database)
+               spade()
             }
          }) {
 

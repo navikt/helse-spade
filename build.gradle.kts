@@ -14,10 +14,6 @@ val wireMockVersion = "2.23.2"
 val mockkVersion = "1.9.3"
 val nimbusVersion = "5.8.0.wso2v1"
 
-val vaultJdbcVersion = "1.3.1"
-val flywayVersion = "6.0.0-beta2"
-val hsqldbVersion= "2.5.0"
-
 plugins {
    kotlin("jvm") version "1.3.40"
 }
@@ -54,16 +50,12 @@ dependencies {
    compile("io.arrow-kt:arrow-core-data:$arrowVersion")
    compile("io.arrow-kt:arrow-effects-data:$arrowVersion")
 
-   compile("no.nav:vault-jdbc:$vaultJdbcVersion")
-   compile("org.flywaydb:flyway-core:$flywayVersion")
-
    testCompile("io.mockk:mockk:$mockkVersion")
    testCompile ("no.nav:kafka-embedded-env:2.0.1")
    testCompile("org.junit.jupiter:junit-jupiter-api:$junitJupiterVersion")
    testCompile("org.junit.jupiter:junit-jupiter-params:$junitJupiterVersion")
    testCompile("org.assertj:assertj-core:$assertJVersion")
    testCompile("org.wso2.orbit.com.nimbusds:nimbus-jose-jwt:$nimbusVersion")
-   testCompile("org.hsqldb:hsqldb:$hsqldbVersion")
 
    testCompile("com.github.tomakehurst:wiremock:$wireMockVersion") {
       exclude(group = "junit")

@@ -7,17 +7,12 @@ import io.ktor.server.engine.connector
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
 import io.ktor.util.*
-import no.nav.helse.spade.feedback.*
 import no.nav.helse.spade.spade
 import java.util.concurrent.TimeUnit
 
 @KtorExperimentalAPI
 fun main() {
    val env = Environment()
-
-   createVaultifiedDatasource(true, env.dbVaultMountPath!!).let {
-      migrate(it)
-   }
 
    embeddedServer(Netty, createApplicationEnvironment(env)).let { app ->
       app.start(wait = false)
@@ -37,7 +32,7 @@ fun createApplicationEnvironment(env: Environment) = applicationEngineEnvironmen
    }
 
    module {
-      spade(createVaultifiedDatasource(false, env.dbVaultMountPath!!))
+      spade()
    }
 }
 
@@ -55,8 +50,6 @@ fun Environment.configureApplicationEnvironment(builder: ApplicationEngineEnviro
 
       put("oidcConfigUrl", oidcConfigUrl)
       put("clientId", clientId)
-
-      dbVaultMountPath?.let { put("db.vault.path", it) }
    }
 }
 
