@@ -24,7 +24,7 @@ import java.io.*
 import java.net.*
 import java.util.*
 
-private val authorizedUsers = listOf("S150563", "T149391", "E117646", "S151395", "H131243", "T127350", "S122648", "G153965")
+private val authorizedUsers = listOf("S150563", "T149391", "E117646", "S151395", "H131243", "T127350", "S122648", "G153965", "R154509", "E156407")
 
 private val auditLog = LoggerFactory.getLogger("auditLogger")
 
