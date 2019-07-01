@@ -203,7 +203,7 @@ class SpadeComponentTest {
                addHeader(HttpHeaders.Authorization, "Bearer $token")
                addHeader(HttpHeaders.Origin, "http://localhost")
             }.apply {
-               if (response.status() == HttpStatusCode.ServiceUnavailable) {
+               if (response.status() == HttpStatusCode.ServiceUnavailable || response.status() == HttpStatusCode.NotFound) {
                   Thread.sleep(1000)
                   makeRequest(søknadId, maxRetryCount, retryCount + 1)
                } else {
