@@ -3,6 +3,7 @@ package no.nav.helse.spade.behandlinger
 import arrow.core.Either
 import arrow.core.left
 import arrow.core.right
+import com.fasterxml.jackson.databind.JsonNode
 import no.nav.helse.Feilårsak
 import org.apache.kafka.streams.errors.InvalidStateStoreException
 import org.slf4j.LoggerFactory
@@ -17,7 +18,7 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
       private val log = LoggerFactory.getLogger(KafkaBehandlingerRepository::class.java)
    }
 
-   fun getBehandlingerForAktør(aktørId: String) = try {
+   fun getBehandlingerForAktør(aktørId: String): Either<Feilårsak, List<JsonNode>> = try {
       stateStore.get(aktørId)?.let {
          Either.Right(it)
       } ?: Either.Left(Feilårsak.IkkeFunnet)
@@ -29,7 +30,7 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
       Either.Left(Feilårsak.UkjentFeil)
    }
 
-   fun getBehandlingerForSøknad(søknadId: String) = try {
+   fun getBehandlingerForSøknad(søknadId: String): Either<Feilårsak, List<JsonNode>> = try {
       stateStore.all().asSequence().filter { keyval ->
          keyval.value.any {
             it.has("originalSøknad") && it.path("originalSøknad").has("id")
