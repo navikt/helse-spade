@@ -61,7 +61,7 @@ class SpadeComponentTest {
    @BeforeEach
    fun configure() {
       val client = WireMock.create().port(server.port()).build()
-      WireMock.configureFor(client)
+      configureFor(client)
       client.resetMappings()
    }
 
@@ -76,18 +76,7 @@ class SpadeComponentTest {
 
       withApplication(
          environment = createTestEnvironment {
-            with (config as MapApplicationConfig) {
-               put("oidcConfigUrl", server.baseUrl() + "/config")
-               put("issuer", "test issuer")
-               put("clientId", "el_cliento")
-               put("clientSecret", "el_secreto")
-
-               put("kafka.app-id", "spade-v1")
-               put("kafka.store-name", "sykepenger-state-store")
-               put("kafka.bootstrap-servers", embeddedEnvironment.brokersURL)
-               put("kafka.username", username)
-               put("kafka.password", password)
-            }
+            fakeConfig(this)
 
             connector {
                port = 8080
@@ -105,10 +94,10 @@ class SpadeComponentTest {
 
    @Test
    @KtorExperimentalAPI
-   fun `forespørsel med feil audience skal svare med 401`() {
+   fun `forespørsel uten påkrevet audience skal svare med 401`() {
       val søknadId = "1111111111"
       val jwkStub = JwtStub("test issuer", server.baseUrl())
-      val token = jwkStub.createTokenFor("S150563", "wrong_audience")
+      val token = jwkStub.createTokenFor("mygroup", "wrong_audience")
 
       produserEnOKBehandling()
 
@@ -117,20 +106,46 @@ class SpadeComponentTest {
 
       withApplication(
          environment = createTestEnvironment {
-            with (config as MapApplicationConfig) {
-               put("oidcConfigUrl", server.baseUrl() + "/config")
-               put("issuer", "test issuer")
-               put("clientId", "el_cliento")
-               put("clientSecret", "el_secreto")
+            fakeConfig(this)
 
-               put("kafka.app-id", "spade-v1")
-               put("kafka.store-name", "sykepenger-state-store")
-               put("kafka.bootstrap-servers", embeddedEnvironment.brokersURL)
-               put("kafka.username", username)
-               put("kafka.password", password)
-               put("DB_CREDS_PATH_ADMIN", "adminpath")
-               put("DB_CREDS_PATH_USER", "userpath")
+            connector {
+               port = 8080
             }
+
+            module {
+               spade()
+            }
+         }) {
+
+         fun makeRequest(søknadId: String) {
+            handleRequest(HttpMethod.Get, "/api/soknader/$søknadId") {
+               addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
+               addHeader(HttpHeaders.Authorization, "Bearer $token")
+               addHeader(HttpHeaders.Origin, "http://localhost")
+            }.apply {
+               assertEquals(HttpStatusCode.Unauthorized, response.status())
+            }
+         }
+
+         makeRequest(søknadId)
+      }
+   }
+
+   @Test
+   @KtorExperimentalAPI
+   fun `forespørsel uten medlemskap i påkrevet gruppe skal svare med 401`() {
+      val søknadId = "1111111111"
+      val jwkStub = JwtStub("test issuer", server.baseUrl())
+      val token = jwkStub.createTokenFor("group not matching requiredGroup")
+
+      produserEnOKBehandling()
+
+      stubFor(jwkStub.stubbedJwkProvider())
+      stubFor(jwkStub.stubbedConfigProvider())
+
+      withApplication(
+         environment = createTestEnvironment {
+            fakeConfig(this)
 
             connector {
                port = 8080
@@ -160,7 +175,7 @@ class SpadeComponentTest {
    fun `skal svare med alle behandlinger for en søknad`() {
       val søknadId = "1111111111"
       val jwkStub = JwtStub("test issuer", server.baseUrl())
-      val token = jwkStub.createTokenFor("S150563")
+      val token = jwkStub.createTokenFor("mygroup")
 
       produserEnOKBehandling()
 
@@ -169,20 +184,7 @@ class SpadeComponentTest {
 
       withApplication(
          environment = createTestEnvironment {
-            with (config as MapApplicationConfig) {
-               put("oidcConfigUrl", server.baseUrl() + "/config")
-               put("issuer", "test issuer")
-               put("clientId", "el_cliento")
-               put("clientSecret", "el_secreto")
-
-               put("kafka.app-id", "spade-v1")
-               put("kafka.store-name", "sykepenger-state-store")
-               put("kafka.bootstrap-servers", embeddedEnvironment.brokersURL)
-               put("kafka.username", username)
-               put("kafka.password", password)
-               put("DB_CREDS_PATH_ADMIN", "adminpath")
-               put("DB_CREDS_PATH_USER", "userpath")
-            }
+            fakeConfig(this)
 
             connector {
                port = 8080
@@ -251,5 +253,23 @@ class SpadeComponentTest {
    }
 
    private fun String.readResource() = object {}.javaClass.getResource(this)?.readText(Charsets.UTF_8) ?: fail { "did not find <$this>" }
+
+   @KtorExperimentalAPI
+   private fun fakeConfig(envBuilder: ApplicationEngineEnvironmentBuilder) =
+      with (envBuilder.config as MapApplicationConfig) {
+         put("oidcConfigUrl", server.baseUrl() + "/config")
+         put("issuer", "test issuer")
+         put("clientId", "el_cliento")
+         put("clientSecret", "el_secreto")
+         put("requiredGroup", "mygroup")
+
+         put("kafka.app-id", "spade-v1")
+         put("kafka.store-name", "sykepenger-state-store")
+         put("kafka.bootstrap-servers", embeddedEnvironment.brokersURL)
+         put("kafka.username", username)
+         put("kafka.password", password)
+         put("DB_CREDS_PATH_ADMIN", "adminpath")
+         put("DB_CREDS_PATH_USER", "userpath")
+      }
 
 }

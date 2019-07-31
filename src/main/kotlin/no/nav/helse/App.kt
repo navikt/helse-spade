@@ -50,6 +50,7 @@ fun Environment.configureApplicationEnvironment(builder: ApplicationEngineEnviro
 
       put("oidcConfigUrl", oidcConfigUrl)
       put("clientId", clientId)
+      put("requiredGroup", requiredGroup)
    }
 }
 

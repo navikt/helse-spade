@@ -8,7 +8,8 @@ data class Environment(
    val navTruststorePassword: String? = getOptionalEnvVar("NAV_TRUSTSTORE_PASSWORD"),
 
    val oidcConfigUrl: String = getEnvVar("OIDC_CONFIG_URL"),
-   val clientId: String = getEnvVar("CLIENT_ID")
+   val clientId: String = getEnvVar("CLIENT_ID"),
+   val requiredGroup: String = getEnvVar("REQUIRED_GROUP")
 )
 
 private fun getEnvVar(varName: String) = getOptionalEnvVar(varName) ?: throw Exception("mangler verdi for $varName")

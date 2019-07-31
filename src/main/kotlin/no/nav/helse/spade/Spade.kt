@@ -24,8 +24,6 @@ import java.io.*
 import java.net.*
 import java.util.*
 
-private val authorizedUsers = listOf("S150563", "T149391", "E117646", "S151395", "H131243", "T127350", "S122648", "G153965", "R154509", "E156407")
-
 private val auditLog = LoggerFactory.getLogger("auditLogger")
 
 @KtorExperimentalAPI
@@ -45,12 +43,14 @@ fun Application.spade() {
       stream.stop()
    }
 
+   val requiredGroup = environment.config.property("requiredGroup").getString()
    install(Authentication) {
       jwt {
          verifier(jwkProvider, idProvider["issuer"].toString())
          realm = environment.config.propertyOrNull("ktor.application.id")?.getString() ?: "Application"
          validate { credentials ->
-            if (credentials.payload.getClaim("NAVident").asString() in authorizedUsers &&
+            val groupsClaim = credentials.payload.getClaim("groups").asList(String::class.java)
+            if (requiredGroup in groupsClaim &&
                environment.config.property("clientId").getString() in credentials.payload.audience) {
                JWTPrincipal(credentials.payload)
             } else {

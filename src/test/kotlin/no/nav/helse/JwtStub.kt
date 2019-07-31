@@ -22,15 +22,15 @@ class JwtStub(private val issuer: String, private val baseUrl: String) {
       publicKey = keyPair.public as RSAPublicKey
    }
 
-   fun createTokenFor(subject: String, audience: String? = null): String {
+   fun createTokenFor(group: String, audience: String? = null): String {
       val algorithm = Algorithm.RSA256(publicKey, privateKey)
 
       return JWT.create()
          .withIssuer(issuer)
          .withAudience(audience ?: "el_cliento")
          .withKeyId("key-1234")
-         .withSubject(subject)
-         .withClaim("NAVident", subject)
+         .withSubject("Da Usah")
+         .withArrayClaim("groups", arrayOf("someothergroup1", group, "someothergroup2"))
          .sign(algorithm)
    }
 
