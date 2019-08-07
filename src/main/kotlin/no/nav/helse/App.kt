@@ -42,8 +42,8 @@ fun Environment.configureApplicationEnvironment(builder: ApplicationEngineEnviro
       put("kafka.app-id", "spade-v1")
       put("kafka.store-name", "sykepenger-state-store")
       put("kafka.bootstrap-servers", bootstrapServersUrl)
-      kafkaUsername?.let { put("kafka.username", it) }
-      kafkaPassword?.let { put("kafka.password", it) }
+      serviceUsername?.let { put("service.username", it) }
+      servicePassword?.let { put("service.password", it) }
 
       navTruststorePath?.let { put("kafka.truststore-path", it) }
       navTruststorePassword?.let { put("kafka.truststore-password", it) }
