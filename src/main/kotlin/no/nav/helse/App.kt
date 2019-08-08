@@ -48,6 +48,9 @@ fun Environment.configureApplicationEnvironment(builder: ApplicationEngineEnviro
       navTruststorePath?.let { put("kafka.truststore-path", it) }
       navTruststorePassword?.let { put("kafka.truststore-password", it) }
 
+      put("sts.baseUrl", stsBaseUrl)
+      put("aktørregister.baseUrl", aktørregisterBaseUrl)
+
       put("oidcConfigUrl", oidcConfigUrl)
       put("clientId", clientId)
       put("requiredGroup", requiredGroup)

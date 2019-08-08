@@ -6,6 +6,8 @@ data class Environment(
    val navTruststorePassword: String? = getOptionalEnvVar("NAV_TRUSTSTORE_PASSWORD"),
    val serviceUsername: String? = getOptionalEnvVar("SERVICEUSER_USERNAME"),
    val servicePassword: String? = getOptionalEnvVar("SERVICEUSER_PASSWORD"),
+   val stsBaseUrl: String = getEnvVar("SECURITY_TOKEN_SERVICE_REST_URL"),
+   val aktørregisterBaseUrl: String = getEnvVar("AKTØRREGISTER_BASE_URL"),
 
    val oidcConfigUrl: String = getEnvVar("OIDC_CONFIG_URL"),
    val clientId: String = getEnvVar("CLIENT_ID"),

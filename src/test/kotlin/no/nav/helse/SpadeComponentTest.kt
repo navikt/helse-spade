@@ -270,6 +270,8 @@ class SpadeComponentTest {
          put("service.password", password)
          put("DB_CREDS_PATH_ADMIN", "adminpath")
          put("DB_CREDS_PATH_USER", "userpath")
+         put("sts.baseUrl", server.baseUrl())
+         put("aktørregister.baseUrl", server.baseUrl())
       }
 
 }

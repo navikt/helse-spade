@@ -106,10 +106,19 @@ fun Application.spade() {
    }
 
    val behandlingerService = BehandlingerService(KafkaBehandlingerRepository(stream))
+   val stsClient = StsClient(
+      baseUrl = environment.config.property("sts.baseUrl").getString(),
+      username = environment.config.property("service.username").getString(),
+      password = environment.config.property("service.password").getString()
+   )
+   val aktørregisterClient = AktørregisterClient(
+      baseUrl = environment.config.property("aktørregister.baseUrl").getString(),
+      stsClient = stsClient
+   )
 
    routing {
       authenticate {
-         behandlinger(behandlingerService)
+         behandlinger(behandlingerService, aktørregisterClient)
       }
    }
 }

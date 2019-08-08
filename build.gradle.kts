@@ -10,6 +10,7 @@ val junitJupiterVersion = "5.5.0-RC2"
 val assertJVersion = "3.12.2"
 val mainClass = "no.nav.helse.AppKt"
 val jacksonVersion = "2.9.9"
+val orgJsonVersion = "20180813"
 val wireMockVersion = "2.23.2"
 val mockkVersion = "1.9.3"
 val nimbusVersion = "5.8.0.wso2v1"
@@ -26,7 +27,7 @@ buildscript {
 
 dependencies {
    compile(kotlin("stdlib"))
-   
+
    compile("ch.qos.logback:logback-classic:1.2.3")
    compile("net.logstash.logback:logstash-logback-encoder:5.2")
    compile("com.papertrailapp:logback-syslog4j:1.0.0")
@@ -39,6 +40,7 @@ dependencies {
 
    compile("com.fasterxml.jackson.module:jackson-module-kotlin:$jacksonVersion")
    compile("com.fasterxml.jackson.datatype:jackson-datatype-jsr310:$jacksonVersion")
+   compile("org.json:json:$orgJsonVersion")
 
    compile("org.apache.kafka:kafka-streams:$kafkaVersion")
 

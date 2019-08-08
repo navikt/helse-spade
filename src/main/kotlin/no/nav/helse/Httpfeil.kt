@@ -19,4 +19,5 @@ fun Feilårsak.toHttpFeil() = when (this) {
    is Feilårsak.IkkeFunnet -> HttpFeil(HttpStatusCode.NotFound, "Resource not found")
    is Feilårsak.MidlertidigUtilgjengelig -> HttpFeil(HttpStatusCode.ServiceUnavailable, "Service is unavailable at the momement")
    is Feilårsak.UkjentFeil -> HttpFeil(HttpStatusCode.InternalServerError, "Unknown error")
+   is Feilårsak.AktørIdIkkeFunnet -> HttpFeil(HttpStatusCode.BadRequest, "Finner ikke aktør-ID for oppgitt fnr")
 }

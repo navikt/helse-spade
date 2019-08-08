@@ -41,4 +41,5 @@ spec:
    env:
       - name: KAFKA_BOOTSTRAP_SERVERS
         value: b27apvl00045.preprod.local:8443,b27apvl00046.preprod.local:8443,b27apvl00047.preprod.local:8443
-
+      - name: SECURITY_TOKEN_SERVICE_REST_URL
+        value: http://security-token-service

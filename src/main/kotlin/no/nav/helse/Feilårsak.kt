@@ -4,5 +4,6 @@ sealed class Feilårsak {
    object IkkeFunnet: Feilårsak()
    object MidlertidigUtilgjengelig: Feilårsak()
    object UkjentFeil: Feilårsak()
+   object AktørIdIkkeFunnet: Feilårsak()
 }
 
