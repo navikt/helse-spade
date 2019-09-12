@@ -20,7 +20,6 @@ import org.apache.kafka.common.config.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import java.io.*
-import java.time.LocalDate
 import java.util.*
 
 class SpadeComponentTest {
@@ -235,8 +234,6 @@ class SpadeComponentTest {
       val tom = "2019-03-15"
       val jwkStub = JwtStub("test issuer", server.baseUrl())
       val token = jwkStub.createTokenFor("mygroup")
-
-      produserEnOKBehandling()
 
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
