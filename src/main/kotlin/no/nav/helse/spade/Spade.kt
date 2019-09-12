@@ -124,8 +124,8 @@ private fun Application.streamConfig() = Properties().apply {
    put(SaslConfigs.SASL_MECHANISM, "PLAIN")
    put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT")
 
-   environment.config.propertyOrNull("kafka.username")?.getString()?.let { username ->
-      environment.config.propertyOrNull("kafka.password")?.getString()?.let { password ->
+   environment.config.propertyOrNull("service.username")?.getString()?.let { username ->
+      environment.config.propertyOrNull("service.password")?.getString()?.let { password ->
          put(SaslConfigs.SASL_JAAS_CONFIG, "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$username\" password=\"$password\";")
       }
    }

@@ -325,8 +325,8 @@ class SpadeComponentTest {
          put("kafka.app-id", "spade-v1")
          put("kafka.store-name", "sykepenger-state-store")
          put("kafka.bootstrap-servers", embeddedEnvironment.brokersURL)
-         put("kafka.username", username)
-         put("kafka.password", password)
+         put("service.username", username)
+         put("service.password", password)
          put("DB_CREDS_PATH_ADMIN", "adminpath")
          put("DB_CREDS_PATH_USER", "userpath")
       }
