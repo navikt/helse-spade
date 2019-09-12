@@ -20,6 +20,7 @@ import org.apache.kafka.common.config.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import java.io.*
+import java.time.LocalDate
 import java.util.*
 
 class SpadeComponentTest {
@@ -225,6 +226,64 @@ class SpadeComponentTest {
          }
 
          makeRequest(søknadId, 20)
+      }
+   }
+   @Test
+   @KtorExperimentalAPI
+   fun `skal svare med alle behandlinger i en periode`() {
+      val fom = "2019-03-13"
+      val tom = "2019-03-15"
+      val jwkStub = JwtStub("test issuer", server.baseUrl())
+      val token = jwkStub.createTokenFor("mygroup")
+
+      produserEnOKBehandling()
+
+      stubFor(jwkStub.stubbedJwkProvider())
+      stubFor(jwkStub.stubbedConfigProvider())
+
+      withApplication(
+         environment = createTestEnvironment {
+            fakeConfig(this)
+
+            connector {
+               port = 8080
+            }
+
+            module {
+               spade()
+            }
+         }) {
+
+         fun makeRequest(fom: String, tom: String, maxRetryCount: Int, retryCount: Int = 0) {
+            if (maxRetryCount == retryCount) {
+               fail { "After $maxRetryCount tries the endpoint is still not available" }
+            }
+
+            handleRequest(HttpMethod.Get, "/api/behandlinger/periode/$fom/$tom") {
+               addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
+               addHeader(HttpHeaders.Authorization, "Bearer $token")
+               addHeader(HttpHeaders.Origin, "http://localhost")
+            }.apply {
+               if (response.status() == HttpStatusCode.ServiceUnavailable || response.status() == HttpStatusCode.NotFound) {
+                  Thread.sleep(1000)
+                  makeRequest(fom, tom, maxRetryCount, retryCount + 1)
+               } else {
+                  assertEquals(HttpStatusCode.OK, response.status())
+
+                  val jsonNode = defaultObjectMapper.readValue(response.content, JsonNode::class.java)
+
+                  assertTrue(jsonNode.has("behandlinger"))
+                  assertTrue(jsonNode.get("behandlinger").isArray)
+
+                  val reader = defaultObjectMapper.readerFor(object : TypeReference<List<JsonNode>>() {})
+                  val behandlinger: List<JsonNode> = reader.readValue(jsonNode.get("behandlinger"))
+
+                  assertEquals(1, behandlinger.size)
+               }
+            }
+         }
+
+         makeRequest(fom, tom, 20)
       }
    }
 
