@@ -37,8 +37,6 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
             it.has("originalSøknad") && it.path("originalSøknad").has("id")
                && it.path("originalSøknad").get("id").textValue() == søknadId
          }
-      }.let {
-         it
       }.flatMap {
          it.value.asSequence()
       }.toList().let {
@@ -59,13 +57,15 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
    fun getBehandlingerForPeriode(fom: String, tom: String): Either<Feilårsak, List<JsonNode>> = try {
       stateStore.all().asSequence().filter { keyval ->
          keyval.value.any {
-            it.has("avklarteVerdier") && it.path("avklarteVerdier").has("medlemsskap")
-               && it.path("avklarteVerdier").path("medlemsskap").has("vurderingstidspunkt")
-               && LocalDate.parse(it.path("avklarteVerdier").path("medlemsskap").get("vurderingstidspunkt").textValue().substring(0, 10)) >= (LocalDate.parse(fom))
-               && LocalDate.parse(it.path("avklarteVerdier").path("medlemsskap").get("vurderingstidspunkt").textValue().substring(0, 10)) <= (LocalDate.parse(tom))
+            if (it.has("avklarteVerdier") && it.path("avklarteVerdier").has("medlemsskap")
+               && it.path("avklarteVerdier").path("medlemsskap").has("vurderingstidspunkt")) {
+               val vurderingstidspunkt = it.path("avklarteVerdier").path("medlemsskap").get("vurderingstidspunkt").textValue()
+               val vurderingstidspunktWithoutTimestamp = vurderingstidspunkt.substring(0, 10)
+               isDateInPeriod(vurderingstidspunktWithoutTimestamp, fom, tom)
+            } else {
+               false
+            }
          }
-      }.let {
-         it
       }.flatMap {
          it.value.asSequence()
       }.toList().let {
@@ -82,4 +82,7 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
       log.error("unknown error while fetching state store", err)
       Either.Left(Feilårsak.UkjentFeil)
    }
+
+   private fun isDateInPeriod(dateString: String, fom: String, tom: String): Boolean =
+      LocalDate.parse(dateString) >= LocalDate.parse(fom) && LocalDate.parse(dateString) <= (LocalDate.parse(tom))
 }
