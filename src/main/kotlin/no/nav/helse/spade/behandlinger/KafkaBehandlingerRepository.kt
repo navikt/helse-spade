@@ -7,6 +7,7 @@ import com.fasterxml.jackson.databind.JsonNode
 import no.nav.helse.Feilårsak
 import org.apache.kafka.streams.errors.InvalidStateStoreException
 import org.slf4j.LoggerFactory
+import java.time.LocalDate
 
 class KafkaBehandlingerRepository(stream: BehandlingerStream) {
 
@@ -36,8 +37,6 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
             it.has("originalSøknad") && it.path("originalSøknad").has("id")
                && it.path("originalSøknad").get("id").textValue() == søknadId
          }
-      }.let {
-         it
       }.flatMap {
          it.value.asSequence()
       }.toList().let {
@@ -54,4 +53,36 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
       log.error("unknown error while fetching state store", err)
       Either.Left(Feilårsak.UkjentFeil)
    }
+
+   fun getBehandlingerForPeriode(fom: String, tom: String): Either<Feilårsak, List<JsonNode>> = try {
+      stateStore.all().asSequence().filter { keyval ->
+         keyval.value.any {
+            if (it.has("avklarteVerdier") && it.path("avklarteVerdier").has("medlemsskap")
+               && it.path("avklarteVerdier").path("medlemsskap").has("vurderingstidspunkt")) {
+               val vurderingstidspunkt = it.path("avklarteVerdier").path("medlemsskap").get("vurderingstidspunkt").textValue()
+               val vurderingstidspunktWithoutTimestamp = vurderingstidspunkt.substring(0, 10)
+               isDateInPeriod(vurderingstidspunktWithoutTimestamp, fom, tom)
+            } else {
+               false
+            }
+         }
+      }.flatMap {
+         it.value.asSequence()
+      }.toList().let {
+         if (it.isEmpty()) {
+            Feilårsak.IkkeFunnet.left()
+         } else {
+            it.right()
+         }
+      }
+   } catch (err: InvalidStateStoreException) {
+      log.info("state store is not available yet", err)
+      Either.Left(Feilårsak.MidlertidigUtilgjengelig)
+   } catch (err: Exception) {
+      log.error("unknown error while fetching state store", err)
+      Either.Left(Feilårsak.UkjentFeil)
+   }
+
+   private fun isDateInPeriod(dateString: String, fom: String, tom: String): Boolean =
+      LocalDate.parse(dateString) >= LocalDate.parse(fom) && LocalDate.parse(dateString) <= (LocalDate.parse(tom))
 }

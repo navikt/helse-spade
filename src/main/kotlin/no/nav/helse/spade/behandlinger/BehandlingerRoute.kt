@@ -17,6 +17,12 @@ fun Route.behandlinger(service: BehandlingerService) {
       service.getBehandlingerForSøknad(call.parameters["søknadId"]!!).map { BehandlingerResponse(it) }
          .respond(call)
    }
+
+   get("api/behandlinger/periode/{fom}/{tom}") {
+      service.getBehandlingerForPeriode(call.parameters["fom"]!!, call.parameters["tom"]!!)
+         .map { BehandlingerResponse(it) }
+         .respond(call)
+   }
 }
 
 data class BehandlingerResponse(val behandlinger: List<JsonNode>)
