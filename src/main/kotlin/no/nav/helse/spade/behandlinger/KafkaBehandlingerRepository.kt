@@ -31,29 +31,6 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
       Either.Left(Feilårsak.UkjentFeil)
    }
 
-   fun getBehandlingerForSøknad(søknadId: String): Either<Feilårsak, List<JsonNode>> = try {
-      stateStore.all().asSequence().filter { keyval ->
-         keyval.value.any {
-            it.has("originalSøknad") && it.path("originalSøknad").has("id")
-               && it.path("originalSøknad").get("id").textValue() == søknadId
-         }
-      }.flatMap {
-         it.value.asSequence()
-      }.toList().let {
-         if (it.isEmpty()) {
-            Feilårsak.IkkeFunnet.left()
-         } else {
-            it.right()
-         }
-      }
-   } catch (err: InvalidStateStoreException) {
-      log.info("state store is not available yet", err)
-      Either.Left(Feilårsak.MidlertidigUtilgjengelig)
-   } catch (err: Exception) {
-      log.error("unknown error while fetching state store", err)
-      Either.Left(Feilårsak.UkjentFeil)
-   }
-
    fun getBehandlingerForPeriode(fom: String, tom: String): Either<Feilårsak, List<JsonNode>> = try {
       stateStore.all().asSequence().filter { keyval ->
          keyval.value.any {

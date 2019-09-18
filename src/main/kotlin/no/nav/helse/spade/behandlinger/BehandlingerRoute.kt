@@ -13,11 +13,6 @@ fun Route.behandlinger(service: BehandlingerService) {
          .respond(call)
    }
 
-   get("api/soknader/{søknadId}") {
-      service.getBehandlingerForSøknad(call.parameters["søknadId"]!!).map { BehandlingerResponse(it) }
-         .respond(call)
-   }
-
    get("api/behandlinger/periode/{fom}/{tom}") {
       service.getBehandlingerForPeriode(call.parameters["fom"]!!, call.parameters["tom"]!!)
          .map { BehandlingerResponse(it) }
