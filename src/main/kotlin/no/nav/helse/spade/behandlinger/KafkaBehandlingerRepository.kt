@@ -15,13 +15,22 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
       stream.store()
    }
 
+   private val tidligsteBehandlingsdato: LocalDate = LocalDate.of(2019, 6, 1)
+
    companion object {
       private val log = LoggerFactory.getLogger(KafkaBehandlingerRepository::class.java)
    }
 
    fun getBehandlingerForAktør(aktørId: String): Either<Feilårsak, List<JsonNode>> = try {
-      stateStore.get(aktørId)?.let {
-         Either.Right(it)
+      stateStore.get(aktørId)?.let { list ->
+         val behandlingerEtterDato = list.filter { node ->
+            getVurderingstidspunkt(node)?.let { LocalDate.parse(it) >= tidligsteBehandlingsdato } ?: false
+         }
+         if (behandlingerEtterDato.isEmpty()) {
+            Either.Left(Feilårsak.IkkeFunnet)
+         } else {
+            Either.Right(behandlingerEtterDato)
+         }
       } ?: Either.Left(Feilårsak.IkkeFunnet)
    } catch (err: InvalidStateStoreException) {
       log.info("state store is not available yet", err)
@@ -32,19 +41,12 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
    }
 
    fun getBehandlingerForPeriode(fom: String, tom: String): Either<Feilårsak, List<JsonNode>> = try {
-      stateStore.all().asSequence().filter { keyval ->
-         keyval.value.any {
-            if (it.has("avklarteVerdier") && it.path("avklarteVerdier").has("medlemsskap")
-               && it.path("avklarteVerdier").path("medlemsskap").has("vurderingstidspunkt")) {
-               val vurderingstidspunkt = it.path("avklarteVerdier").path("medlemsskap").get("vurderingstidspunkt").textValue()
-               val vurderingstidspunktWithoutTimestamp = vurderingstidspunkt.substring(0, 10)
-               isDateInPeriod(vurderingstidspunktWithoutTimestamp, fom, tom)
-            } else {
-               false
-            }
+      val initialList: MutableList<JsonNode> = mutableListOf()
+      stateStore.all().asSequence().fold(initialList) { acc, keyval ->
+         keyval.value.forEach { node ->
+            if (getVurderingstidspunkt(node)?.let { isDateInPeriod(it, fom, tom) } == true) acc.add(node)
          }
-      }.flatMap {
-         it.value.asSequence()
+         acc
       }.toList().let {
          if (it.isEmpty()) {
             Feilårsak.IkkeFunnet.left()
@@ -58,6 +60,16 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
    } catch (err: Exception) {
       log.error("unknown error while fetching state store", err)
       Either.Left(Feilårsak.UkjentFeil)
+   }
+
+   private fun getVurderingstidspunkt(node: JsonNode): String? {
+      if (node.has("avklarteVerdier") && node.path("avklarteVerdier").has("medlemsskap")
+         && node.path("avklarteVerdier").path("medlemsskap").has("vurderingstidspunkt")) {
+         val vurderingstidspunkt = node.path("avklarteVerdier").path("medlemsskap").get("vurderingstidspunkt").textValue()
+         val vurderingstidspunktWithoutTimestamp = vurderingstidspunkt.substring(0, 10)
+         return vurderingstidspunktWithoutTimestamp
+      }
+      return null
    }
 
    private fun isDateInPeriod(dateString: String, fom: String, tom: String): Boolean =
