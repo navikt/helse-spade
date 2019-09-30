@@ -41,13 +41,13 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
    }
 
    fun getBehandlingerForPeriode(fom: String, tom: String): Either<Feilårsak, List<JsonNode>> = try {
-      val initialList: MutableList<JsonNode> = mutableListOf()
+      val initialList: List<JsonNode> = emptyList()
       stateStore.all().asSequence().fold(initialList) { acc, keyval ->
-         keyval.value.forEach { node ->
-            if (getVurderingstidspunkt(node)?.let { isDateInPeriod(it, fom, tom) } == true) acc.add(node)
+         val filtered = keyval.value.filter { node ->
+            getVurderingstidspunkt(node)?.let { isDateInPeriod(it, fom, tom) } == true
          }
-         acc
-      }.toList().let {
+         acc + filtered
+      }.let {
          if (it.isEmpty()) {
             Feilårsak.IkkeFunnet.left()
          } else {
