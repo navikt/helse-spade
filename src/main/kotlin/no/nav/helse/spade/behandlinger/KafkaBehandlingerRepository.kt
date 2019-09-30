@@ -42,12 +42,9 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
 
    fun getBehandlingerForPeriode(fom: String, tom: String): Either<Feilårsak, List<JsonNode>> = try {
       val initialList: List<JsonNode> = emptyList()
-      stateStore.all().asSequence().fold(initialList) { acc, keyval ->
-         val filtered = keyval.value.filter { node ->
-            getVurderingstidspunkt(node)?.let { isDateInPeriod(it, fom, tom) } == true
-         }
-         acc + filtered
-      }.let {
+      stateStore.all().asSequence().flatMap { it.value.asSequence() }.filter { node ->
+         getVurderingstidspunkt(node)?.let { isDateInPeriod(it, fom, tom) } == true
+      }.toList().let {
          if (it.isEmpty()) {
             Feilårsak.IkkeFunnet.left()
          } else {
