@@ -21,10 +21,11 @@ class KafkaBehandlingerRepositoryTest {
       val storeMock = mockk<ReadOnlyKeyValueStore<String, List<JsonNode>>>()
       val søknad = "/behandling_ok.json".readResource()
       val json = defaultObjectMapper.readValue(søknad, JsonNode::class.java)
-      val jsonWithLaterVurderingstidpunkt = with(json) {
-         val objectNode: ObjectNode = json.deepCopy()
-         objectNode.with("avklarteVerdier").with("medlemsskap").put("vurderingstidspunkt", "2019-07-01")
-         objectNode
+
+      val objectNode: ObjectNode = json.deepCopy()
+      val jsonWithLaterVurderingstidpunkt = with(objectNode) {
+         with("avklarteVerdier").with("medlemsskap").put("vurderingstidspunkt", "2019-07-01")
+         this
       }
 
       every {
