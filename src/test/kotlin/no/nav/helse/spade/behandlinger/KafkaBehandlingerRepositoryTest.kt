@@ -2,9 +2,10 @@ package no.nav.helse.spade.behandlinger
 
 import arrow.core.*
 import com.fasterxml.jackson.databind.*
-import com.fasterxml.jackson.databind.node.*
+import com.fasterxml.jackson.databind.node.ObjectNode
 import io.mockk.*
 import no.nav.helse.*
+import no.nav.helse.serde.defaultObjectMapper
 import org.apache.kafka.streams.errors.*
 import org.apache.kafka.streams.state.*
 import org.junit.jupiter.api.*
@@ -13,11 +14,18 @@ import org.junit.jupiter.api.Assertions.*
 class KafkaBehandlingerRepositoryTest {
 
    @Test
-   fun `skal svare data når aktørId finnes i state store`() {
-      val aktørId = "123456789"
+   fun `skal svare riktig data når aktørId finnes i state store med kun én behandling etter 'tidligstBehandlet'-dato`() {
+      val aktørId = "1234567890123"
 
       val streamMock = mockk<BehandlingerStream>()
       val storeMock = mockk<ReadOnlyKeyValueStore<String, List<JsonNode>>>()
+      val søknad = "/behandling_ok.json".readResource()
+      val json = defaultObjectMapper.readValue(søknad, JsonNode::class.java)
+      val jsonWithLaterVurderingstidpunkt = with(json) {
+         val objectNode: ObjectNode = json.deepCopy()
+         objectNode.with("avklarteVerdier").with("medlemsskap").put("vurderingstidspunkt", "2019-07-01")
+         objectNode
+      }
 
       every {
          streamMock.store()
@@ -25,15 +33,14 @@ class KafkaBehandlingerRepositoryTest {
 
       every {
          storeMock.get(eq(aktørId))
-      } returns listOf(TextNode("Hello, World"))
+      } returns listOf(json, jsonWithLaterVurderingstidpunkt)
 
       val actual = KafkaBehandlingerRepository(streamMock)
          .getBehandlingerForAktør(aktørId)
 
       actual.fold(
          { throw Exception("expected an Either.right") },
-         { right -> assertEquals("Hello, World", right[0].textValue()) }
-
+         { right -> assertEquals(1, right.size) }
       )
    }
 
@@ -89,4 +96,7 @@ class KafkaBehandlingerRepositoryTest {
          { left -> assertEquals(expected, left) },
          { throw Exception("expected an Either.left") }
       )
+
+   private fun String.readResource() = object {}.javaClass.getResource(this)?.readText(Charsets.UTF_8)
+      ?: fail { "did not find <$this>" }
 }
