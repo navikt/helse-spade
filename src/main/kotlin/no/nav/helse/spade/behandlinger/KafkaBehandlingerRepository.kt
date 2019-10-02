@@ -40,7 +40,7 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
       Either.Left(Feilårsak.UkjentFeil)
    }
 
-   fun getBehandlingerForPeriode(fom: String, tom: String): Either<Feilårsak, List<BehandlingDto>> = try {
+   fun getBehandlingerForPeriode(fom: String, tom: String): Either<Feilårsak, List<BehandlingSummary>> = try {
       stateStore.all().use { iterator ->
          iterator.asSequence().flatMap { it.value.asSequence() }.filter { node ->
             getVurderingstidspunkt(node)?.let { isDateInPeriod(it, fom, tom) } == true
@@ -60,14 +60,14 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
       Either.Left(Feilårsak.UkjentFeil)
    }
 
-   private fun mapToDto(node: JsonNode): BehandlingDto {
+   private fun mapToDto(node: JsonNode): BehandlingSummary {
       val behandlingsId = node.get("behandlingsId")?.textValue() ?: throw Exception("Field 'behandlingsId' not found in behandling")
       val vurderingstidspunkt = node.path("avklarteVerdier").path("medlemsskap").get("vurderingstidspunkt").textValue()
       if (node.has("originalSøknad")) {
          val aktorId = node.path("originalSøknad").get("aktorId").textValue()
          val fom = node.path("originalSøknad").get("fom").textValue()
          val tom = node.path("originalSøknad").get("tom").textValue()
-         return BehandlingDto(aktorId, behandlingsId, fom, tom, vurderingstidspunkt)
+         return BehandlingSummary(aktorId, behandlingsId, fom, tom, vurderingstidspunkt)
       } else throw Exception("Field 'originalSøknad' not found in behandling with behandlingsId: $behandlingsId")
    }
 
