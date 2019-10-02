@@ -15,9 +15,10 @@ fun Route.behandlinger(service: BehandlingerService) {
 
    get("api/behandlinger/periode/{fom}/{tom}") {
       service.getBehandlingerForPeriode(call.parameters["fom"]!!, call.parameters["tom"]!!)
-         .map { BehandlingerResponse(it) }
+         .map { BehandlingerDtoResponse(it) }
          .respond(call)
    }
 }
 
 data class BehandlingerResponse(val behandlinger: List<JsonNode>)
+data class BehandlingerDtoResponse(val behandlinger: List<BehandlingDto>)
