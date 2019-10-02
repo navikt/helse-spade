@@ -14,6 +14,7 @@ import io.ktor.util.*
 import no.nav.common.*
 import no.nav.helse.serde.*
 import no.nav.helse.spade.*
+import no.nav.helse.spade.behandlinger.BehandlingSummary
 import org.apache.kafka.clients.*
 import org.apache.kafka.clients.producer.*
 import org.apache.kafka.common.config.*
@@ -217,8 +218,8 @@ class SpadeComponentTest {
                   assertTrue(jsonNode.has("behandlinger"))
                   assertTrue(jsonNode.get("behandlinger").isArray)
 
-                  val reader = defaultObjectMapper.readerFor(object : TypeReference<List<JsonNode>>() {})
-                  val behandlinger: List<JsonNode> = reader.readValue(jsonNode.get("behandlinger"))
+                  val reader = defaultObjectMapper.readerFor(object : TypeReference<List<BehandlingSummary>>() {})
+                  val behandlinger: List<BehandlingSummary> = reader.readValue(jsonNode.get("behandlinger"))
 
                   assertTrue(behandlinger.isNotEmpty())
                }
