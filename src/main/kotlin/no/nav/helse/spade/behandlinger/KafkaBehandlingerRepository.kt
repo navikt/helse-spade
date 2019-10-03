@@ -67,7 +67,7 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
          val aktorId = node.path("originalSøknad").get("aktorId").textValue()
          val fom = node.path("originalSøknad").get("fom").textValue()
          val tom = node.path("originalSøknad").get("tom").textValue()
-         return BehandlingSummary(aktorId, behandlingsId, fom, tom, vurderingstidspunkt)
+         return BehandlingSummary(behandlingsId, aktorId, fom, tom, vurderingstidspunkt)
       } else throw Exception("Field 'originalSøknad' not found in behandling with behandlingsId: $behandlingsId")
    }
 
