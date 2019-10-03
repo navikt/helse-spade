@@ -230,6 +230,64 @@ class SpadeComponentTest {
       }
    }
 
+   @Test
+   @KtorExperimentalAPI
+   fun `skal svare med riktig behandling for aktør`() {
+      val aktørId = "1234567890123"
+      val behandlingsId = "92957f3c-968a-4d88-ac76-c6cec5142bgg"
+      val jwkStub = JwtStub("test issuer", server.baseUrl())
+      val token = jwkStub.createTokenFor("mygroup")
+
+      produserEnOKBehandling()
+
+      stubFor(jwkStub.stubbedJwkProvider())
+      stubFor(jwkStub.stubbedConfigProvider())
+
+      withApplication(
+         environment = createTestEnvironment {
+            fakeConfig(this)
+
+            connector {
+               port = 8080
+            }
+
+            module {
+               spade()
+            }
+         }) {
+
+         fun makeRequest(aktørId: String, behandlingsId: String, maxRetryCount: Int, retryCount: Int = 0) {
+            if (maxRetryCount == retryCount) {
+               fail { "After $maxRetryCount tries the endpoint is still not available" }
+            }
+
+            handleRequest(HttpMethod.Get, "/api/behandlinger/behandling/$aktørId/$behandlingsId") {
+               addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
+               addHeader(HttpHeaders.Authorization, "Bearer $token")
+               addHeader(HttpHeaders.Origin, "http://localhost")
+            }.apply {
+               if (response.status() == HttpStatusCode.ServiceUnavailable || response.status() == HttpStatusCode.NotFound) {
+                  Thread.sleep(1000)
+                  makeRequest(aktørId, behandlingsId, maxRetryCount, retryCount + 1)
+               } else {
+                  assertEquals(HttpStatusCode.OK, response.status())
+
+                  val jsonNode = defaultObjectMapper.readValue(response.content, JsonNode::class.java)
+
+                  assertTrue(jsonNode.has("behandling"))
+
+                  val reader = defaultObjectMapper.readerFor(object : TypeReference<JsonNode>() {})
+                  val behandling: JsonNode = reader.readValue(jsonNode.get("behandling"))
+
+                  assertEquals(behandling.get("behandlingsId").textValue(), behandlingsId)
+               }
+            }
+         }
+
+         makeRequest(aktørId, behandlingsId, 20)
+      }
+   }
+
    private fun produserEnOKBehandling() {
       val søknad = "/behandling_ok.json".readResource()
       val json = defaultObjectMapper.readValue(søknad, JsonNode::class.java)
