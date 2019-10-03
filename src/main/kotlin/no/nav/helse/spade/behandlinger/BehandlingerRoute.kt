@@ -18,7 +18,14 @@ fun Route.behandlinger(service: BehandlingerService) {
          .map { BehandlingSummariesResponse(it) }
          .respond(call)
    }
+
+   get("api/behandlinger/behandling/{aktorId}/{behandlingsId}") {
+      service.getBehandlingMedId(call.parameters["aktorId"]!!, call.parameters["behandlingsId"]!!)
+         .map { BehandlingResponse(it) }
+         .respond(call)
+   }
 }
 
+data class BehandlingResponse(val behandling: JsonNode)
 data class BehandlingerResponse(val behandlinger: List<JsonNode>)
 data class BehandlingSummariesResponse(val behandlinger: List<BehandlingSummary>)

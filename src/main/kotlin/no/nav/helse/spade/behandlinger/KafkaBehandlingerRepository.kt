@@ -1,8 +1,10 @@
 package no.nav.helse.spade.behandlinger
 
 import arrow.core.Either
+import arrow.core.getOrElse
 import arrow.core.left
 import arrow.core.right
+import arrow.data.extensions.list.foldable.find
 import com.fasterxml.jackson.databind.JsonNode
 import no.nav.helse.Feilårsak
 import org.apache.kafka.streams.errors.InvalidStateStoreException
@@ -32,6 +34,23 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
             Either.Right(behandlingerEtterDato)
          }
       } ?: Either.Left(Feilårsak.IkkeFunnet)
+   } catch (err: InvalidStateStoreException) {
+      log.info("state store is not available yet", err)
+      Either.Left(Feilårsak.MidlertidigUtilgjengelig)
+   } catch (err: Exception) {
+      log.error("unknown error while fetching state store", err)
+      Either.Left(Feilårsak.UkjentFeil)
+   }
+
+   fun getBehandlingMedId(aktørId: String, behandlingsId: String): Either<Feilårsak, JsonNode> = try {
+      stateStore.get(aktørId)?.let { list ->
+         val behandling = list.find { node ->
+             if (node.has("behandlingsId")) {
+                node.get("behandlingsId").textValue() == behandlingsId
+             } else false
+         }.getOrElse { null }
+         behandling
+      }?.right() ?: Either.Left(Feilårsak.IkkeFunnet)
    } catch (err: InvalidStateStoreException) {
       log.info("state store is not available yet", err)
       Either.Left(Feilårsak.MidlertidigUtilgjengelig)
