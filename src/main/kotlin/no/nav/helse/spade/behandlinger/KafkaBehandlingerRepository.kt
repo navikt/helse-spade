@@ -41,11 +41,15 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
    }
 
    fun getBehandlingerForPeriode(fom: String, tom: String): Either<Feilårsak, List<BehandlingSummary>> = try {
+      log.info("Iterate through ${stateStore.approximateNumEntries()} entries")
       val start = System.currentTimeMillis()
       stateStore.all().use { iterator ->
-         iterator.asSequence().flatMap { it.value.asSequence() }.filter { node ->
+         log.info("Time passed before filtering: ${System.currentTimeMillis() - start} ms")
+         val v = iterator.asSequence().flatMap { it.value.asSequence() }.filter { node ->
             getVurderingstidspunkt(node)?.let { isDateInPeriod(it, fom, tom) } == true
-         }.map { mapToDto(it) }.toList().let {
+         }
+         log.info("Time passed after filtering: ${System.currentTimeMillis() - start} ms")
+            return v.map { mapToDto(it) }.toList().let {
             val time = System.currentTimeMillis() - start
             log.info("Fetching behandlinger took $time ms")
             if (it.isEmpty()) {
