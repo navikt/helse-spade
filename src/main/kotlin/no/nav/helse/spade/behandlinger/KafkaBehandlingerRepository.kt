@@ -43,13 +43,12 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
    fun getBehandlingerForPeriode(fom: String, tom: String): Either<Feilårsak, List<BehandlingSummary>> = try {
       log.info("Iterate through ${stateStore.approximateNumEntries()} entries")
       val start = System.currentTimeMillis()
+
       stateStore.all().use { iterator ->
          log.info("Time passed before filtering: ${System.currentTimeMillis() - start} ms")
-         val v = iterator.asSequence().flatMap { it.value.asSequence() }.filter { node ->
+         iterator.asSequence().flatMap { it.value.asSequence() }.toList().filter { node ->
             getVurderingstidspunkt(node)?.let { isDateInPeriod(it, fom, tom) } == true
-         }
-         log.info("Time passed after filtering: ${System.currentTimeMillis() - start} ms")
-            return v.map { mapToDto(it) }.toList().let {
+         }.map { mapToDto(it) }.let {
             val time = System.currentTimeMillis() - start
             log.info("Fetching behandlinger took $time ms")
             if (it.isEmpty()) {
@@ -68,7 +67,8 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
    }
 
    private fun mapToDto(node: JsonNode): BehandlingSummary {
-      val behandlingsId = node.get("behandlingsId")?.textValue() ?: throw Exception("Field 'behandlingsId' not found in behandling")
+      val behandlingsId = node.get("behandlingsId")?.textValue()
+         ?: throw Exception("Field 'behandlingsId' not found in behandling")
       val vurderingstidspunkt = node.path("avklarteVerdier").path("medlemsskap").get("vurderingstidspunkt").textValue()
       if (node.has("originalSøknad")) {
          val aktorId = node.path("originalSøknad").get("aktorId").textValue()
