@@ -45,10 +45,9 @@ class KafkaBehandlingerRepository(stream: BehandlingerStream) {
       val start = System.currentTimeMillis()
 
       stateStore.all().use { iterator ->
-         log.info("Time passed before filtering: ${System.currentTimeMillis() - start} ms")
-         iterator.asSequence().flatMap { it.value.asSequence() }.toList().filter { node ->
+         iterator.asSequence().flatMap { it.value.asSequence() }.filter { node ->
             getVurderingstidspunkt(node)?.let { isDateInPeriod(it, fom, tom) } == true
-         }.map { mapToDto(it) }.let {
+         }.map { mapToDto(it) }.toList().let {
             val time = System.currentTimeMillis() - start
             log.info("Fetching behandlinger took $time ms")
             if (it.isEmpty()) {
