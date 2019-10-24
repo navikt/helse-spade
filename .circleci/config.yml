@@ -45,7 +45,7 @@ jobs:
                    echo "export DOCKER_IMG_NAME=$DOCKER_IMG_NAME" >> $BASH_ENV
                    echo "export COMMIT_SHORT=$COMMIT_SHORT" >> $BASH_ENV
 
-                   docker build . -t $DOCKER_IMG_NAME:$COMMIT_SHORT
+                   docker build . -t $DOCKER_IMG_NAME:$COMMIT_SHORT -t $DOCKER_IMG_NAME:latest
 
                    echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
                    docker push $DOCKER_IMG_NAME:$COMMIT_SHORT
