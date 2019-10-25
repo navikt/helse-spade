@@ -49,6 +49,7 @@ jobs:
 
                    echo "$DOCKER_PASSWORD" | docker login --username "$DOCKER_USERNAME" --password-stdin
                    docker push $DOCKER_IMG_NAME:$COMMIT_SHORT
+                   docker push $DOCKER_IMG_NAME:latest
                  fi
          - run:
               name: deploy to preprod
