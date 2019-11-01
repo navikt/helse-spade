@@ -13,7 +13,10 @@ import io.ktor.routing.*
 import io.ktor.util.*
 import no.nav.helse.http.*
 import no.nav.helse.nais.*
-import no.nav.helse.spade.behandlinger.*
+import no.nav.helse.spade.behov.BehovConsumer
+import no.nav.helse.spade.behov.BehovService
+import no.nav.helse.spade.behov.KafkaBehovRepository
+import no.nav.helse.spade.behov.behov
 import org.apache.kafka.clients.*
 import org.apache.kafka.common.config.*
 import org.apache.kafka.streams.*
@@ -37,7 +40,7 @@ fun Application.spade() {
       )
 
    val jwkProvider = JwkProviderBuilder(URL(idProvider["jwks_uri"].toString())).build()
-   val stream = BehandlingerStream(streamConfig(), environment.config.property("kafka.store-name").getString())
+   val stream = BehovConsumer(streamConfig(), environment.config.property("kafka.store-name").getString())
 
    environment.monitor.subscribe(ApplicationStopping) {
       stream.stop()
@@ -105,11 +108,11 @@ fun Application.spade() {
       }
    }
 
-   val behandlingerService = BehandlingerService(KafkaBehandlingerRepository(stream))
+   val behovService = BehovService(KafkaBehovRepository(stream))
 
    routing {
       authenticate {
-         behandlinger(behandlingerService)
+         behov(behovService)
       }
    }
 }
@@ -120,6 +123,7 @@ private fun Application.streamConfig() = Properties().apply {
    put(StreamsConfig.APPLICATION_ID_CONFIG, environment.config.property("kafka.app-id").getString())
 
    put(StreamsConfig.DEFAULT_DESERIALIZATION_EXCEPTION_HANDLER_CLASS_CONFIG, LogAndFailExceptionHandler::class.java)
+   put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, environment.config.propertyOrNull("kafka.commit-interval-ms-config")?.getString() ?: "1000")
 
    put(SaslConfigs.SASL_MECHANISM, "PLAIN")
    put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT")

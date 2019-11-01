@@ -12,9 +12,9 @@ import io.ktor.server.engine.*
 import io.ktor.server.testing.*
 import io.ktor.util.*
 import no.nav.common.*
+import no.nav.helse.kafka.Topics.behovTopic
 import no.nav.helse.serde.*
 import no.nav.helse.spade.*
-import no.nav.helse.spade.behandlinger.BehandlingSummary
 import org.apache.kafka.clients.*
 import org.apache.kafka.clients.producer.*
 import org.apache.kafka.common.config.*
@@ -29,6 +29,16 @@ class SpadeComponentTest {
       private const val username = "srvkafkaclient"
       private const val password = "kafkaclient"
 
+      val enAktørId = "12345678910"
+      val etBehov = mapOf(
+         "@behov" to "GodkjenningFraSaksbehandler",
+         "@id" to "ea5d644b-ffb9-4c32-bbd9-f93744554d5e",
+         "@opprettet" to "2019-11-01T08:38:00.728127",
+         "aktørId" to enAktørId,
+         "organisasjonsnummer" to "123456789",
+         "sakskompleksId" to "sakskompleks-uuid"
+      )
+
       val server: WireMockServer = WireMockServer(WireMockConfiguration.options().dynamicPort())
 
       private val embeddedEnvironment = KafkaEnvironment(
@@ -36,14 +46,13 @@ class SpadeComponentTest {
          autoStart = false,
          withSchemaRegistry = false,
          withSecurity = true,
-         topics = listOf("aapen-helse-sykepenger-vedtak", "privat-helse-sykepenger-behandlingsfeil")
+         topics = listOf(behovTopic)
       )
 
       @BeforeAll
       @JvmStatic
       fun start() {
          server.start()
-
          embeddedEnvironment.start()
       }
 
@@ -69,7 +78,6 @@ class SpadeComponentTest {
    @Test
    @KtorExperimentalAPI
    fun `uautentisert forespørsel skal svare med 401`() {
-      val aktørId = "12345678911"
       val jwkStub = JwtStub("test issuer", server.baseUrl())
 
       stubFor(jwkStub.stubbedJwkProvider())
@@ -87,7 +95,7 @@ class SpadeComponentTest {
                spade()
             }
          }) {
-         handleRequest(HttpMethod.Get, "/api/behandlinger/$aktørId") {}.apply {
+         handleRequest(HttpMethod.Get, "/api/behov/$enAktørId") {}.apply {
             assertEquals(HttpStatusCode.Unauthorized, response.status())
          }
       }
@@ -96,11 +104,10 @@ class SpadeComponentTest {
    @Test
    @KtorExperimentalAPI
    fun `forespørsel uten påkrevet audience skal svare med 401`() {
-      val aktørId = "12345678911"
       val jwkStub = JwtStub("test issuer", server.baseUrl())
       val token = jwkStub.createTokenFor("mygroup", "wrong_audience")
 
-      produserEnOKBehandling()
+      produceOneMessage()
 
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
@@ -119,7 +126,7 @@ class SpadeComponentTest {
          }) {
 
          fun makeRequest(aktørId: String) {
-            handleRequest(HttpMethod.Get, "/api/behandlinger/$aktørId") {
+            handleRequest(HttpMethod.Get, "/api/behov/$aktørId") {
                addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
                addHeader(HttpHeaders.Origin, "http://localhost")
@@ -128,18 +135,17 @@ class SpadeComponentTest {
             }
          }
 
-         makeRequest(aktørId)
+         makeRequest(enAktørId)
       }
    }
 
    @Test
    @KtorExperimentalAPI
    fun `forespørsel uten medlemskap i påkrevet gruppe skal svare med 401`() {
-      val aktørId = "12345678911"
       val jwkStub = JwtStub("test issuer", server.baseUrl())
       val token = jwkStub.createTokenFor("group not matching requiredGroup")
 
-      produserEnOKBehandling()
+      produceOneMessage()
 
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
@@ -158,7 +164,7 @@ class SpadeComponentTest {
          }) {
 
          fun makeRequest(aktørId: String) {
-            handleRequest(HttpMethod.Get, "/api/behandlinger/$aktørId") {
+            handleRequest(HttpMethod.Get, "/api/behov/$aktørId") {
                addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
                addHeader(HttpHeaders.Origin, "http://localhost")
@@ -167,19 +173,27 @@ class SpadeComponentTest {
             }
          }
 
-         makeRequest(aktørId)
+         makeRequest(enAktørId)
       }
    }
 
    @Test
    @KtorExperimentalAPI
-   fun `skal svare med alle behandlinger i en periode`() {
-      val fom = "2019-03-13"
-      val tom = "2019-03-15"
+   fun `andre behov filtreres vekk`() {
       val jwkStub = JwtStub("test issuer", server.baseUrl())
       val token = jwkStub.createTokenFor("mygroup")
 
-      produserEnOKBehandling()
+      val endaEnAktørId = "11109876543"
+      val behov = mapOf(
+         "@behov" to "Sykepengehistorikk",
+         "@id" to "ea5d644b-ffb9-4c32-bbd9-f93744554d5e",
+         "@opprettet" to "2019-11-01T08:38:00.728127",
+         "aktørId" to endaEnAktørId,
+         "organisasjonsnummer" to "123456789",
+         "sakskompleksId" to "sakskompleks-uuid"
+      )
+
+      produceOneMessage(behovTopic, behov)
 
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
@@ -197,49 +211,179 @@ class SpadeComponentTest {
             }
          }) {
 
-         fun makeRequest(fom: String, tom: String, maxRetryCount: Int, retryCount: Int = 0) {
+         fun makeRequest(maxRetryCount: Int, retryCount: Int = 0) {
             if (maxRetryCount == retryCount) {
                fail { "After $maxRetryCount tries the endpoint is still not available" }
             }
 
-            handleRequest(HttpMethod.Get, "/api/behandlinger/periode/$fom/$tom") {
+            handleRequest(HttpMethod.Get, "/api/behov/$endaEnAktørId") {
+               addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
+               addHeader(HttpHeaders.Authorization, "Bearer $token")
+               addHeader(HttpHeaders.Origin, "http://localhost")
+            }.apply {
+               if (response.status() == HttpStatusCode.ServiceUnavailable) {
+                  Thread.sleep(1000)
+                  makeRequest(maxRetryCount, retryCount + 1)
+               } else {
+                  assertEquals(HttpStatusCode.NotFound, response.status())
+               }
+            }
+         }
+
+         makeRequest(20)
+      }
+   }
+
+   @Test
+   @KtorExperimentalAPI
+   fun `alle behov for en person`() {
+      val jwkStub = JwtStub("test issuer", server.baseUrl())
+      val token = jwkStub.createTokenFor("mygroup")
+
+      val enAnnenAktørId = "10987654321"
+      val behov = mapOf(
+         "@behov" to "GodkjenningFraSaksbehandler",
+         "@id" to "ea5d644b-ffb9-4c32-bbd9-f93744554d5e",
+         "@opprettet" to "2019-11-01T08:38:00.728127",
+         "aktørId" to enAnnenAktørId,
+         "organisasjonsnummer" to "123456789",
+         "sakskompleksId" to "sakskompleks-uuid"
+      )
+
+      produceOneMessage(behovTopic, behov)
+
+      stubFor(jwkStub.stubbedJwkProvider())
+      stubFor(jwkStub.stubbedConfigProvider())
+
+      withApplication(
+         environment = createTestEnvironment {
+            fakeConfig(this)
+
+            connector {
+               port = 8080
+            }
+
+            module {
+               spade()
+            }
+         }) {
+
+         fun makeRequest(maxRetryCount: Int, retryCount: Int = 0) {
+            if (maxRetryCount == retryCount) {
+               fail { "After $maxRetryCount tries the endpoint is still not available" }
+            }
+
+            handleRequest(HttpMethod.Get, "/api/behov/$enAnnenAktørId") {
                addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
                addHeader(HttpHeaders.Origin, "http://localhost")
             }.apply {
                if (response.status() == HttpStatusCode.ServiceUnavailable || response.status() == HttpStatusCode.NotFound) {
                   Thread.sleep(1000)
-                  makeRequest(fom, tom, maxRetryCount, retryCount + 1)
+                  makeRequest(maxRetryCount, retryCount + 1)
                } else {
                   assertEquals(HttpStatusCode.OK, response.status())
 
-                  val jsonNode = defaultObjectMapper.readValue(response.content, JsonNode::class.java)
+                  val reader = defaultObjectMapper.readerFor(object : TypeReference<List<JsonNode>>() {})
+                  val behovliste: List<JsonNode> = reader.readValue(response.content)
 
-                  assertTrue(jsonNode.has("behandlinger"))
-                  assertTrue(jsonNode.get("behandlinger").isArray)
-
-                  val reader = defaultObjectMapper.readerFor(object : TypeReference<List<BehandlingSummary>>() {})
-                  val behandlinger: List<BehandlingSummary> = reader.readValue(jsonNode.get("behandlinger"))
-
-                  assertTrue(behandlinger.isNotEmpty())
+                  assertEquals(1, behovliste.size)
+                  assertEquals(defaultObjectMapper.valueToTree(behov), behovliste[0])
                }
             }
          }
 
-         makeRequest(fom, tom, 20)
+         makeRequest(20)
       }
    }
 
-   private fun produserEnOKBehandling() {
-      val søknad = "/behandling_ok.json".readResource()
-      val json = defaultObjectMapper.readValue(søknad, JsonNode::class.java)
+   @Test
+   @KtorExperimentalAPI
+   fun `alle behov for en tidsperiode`() {
+      val jwkStub = JwtStub("test issuer", server.baseUrl())
+      val token = jwkStub.createTokenFor("mygroup")
 
-      produceOneMessage(json)
+      val behov = mapOf(
+         "@behov" to "GodkjenningFraSaksbehandler",
+         "@id" to "ea5d644b-ffb9-4c32-bbd9-f93744554d5e",
+         "@opprettet" to "2019-11-01T00:00:00.000000",
+         "aktørId" to "12345678910",
+         "organisasjonsnummer" to "123456789",
+         "sakskompleksId" to "sakskompleks-uuid"
+      )
+
+      val behov2 = mapOf(
+         "@behov" to "GodkjenningFraSaksbehandler",
+         "@id" to "ea5d644b-ffb9-4c32-bbd9-f93744554d5e",
+         "@opprettet" to "2019-11-02T00:00:00.000000",
+         "aktørId" to "23456789101",
+         "organisasjonsnummer" to "123456789",
+         "sakskompleksId" to "sakskompleks-uuid"
+      )
+
+      val behovUtenforPeriode = mapOf(
+         "@behov" to "GodkjenningFraSaksbehandler",
+         "@id" to "ea5d644b-ffb9-4c32-bbd9-f93744554d5e",
+         "@opprettet" to "2019-11-03T00:00:00.000000",
+         "aktørId" to "34567891011",
+         "organisasjonsnummer" to "123456789",
+         "sakskompleksId" to "sakskompleks-uuid"
+      )
+
+      produceOneMessage(behovTopic, behov)
+      produceOneMessage(behovTopic, behov2)
+      produceOneMessage(behovTopic, behovUtenforPeriode)
+
+      stubFor(jwkStub.stubbedJwkProvider())
+      stubFor(jwkStub.stubbedConfigProvider())
+
+      withApplication(
+         environment = createTestEnvironment {
+            fakeConfig(this)
+
+            connector {
+               port = 8080
+            }
+
+            module {
+               spade()
+            }
+         }) {
+
+         fun makeRequest(maxRetryCount: Int, retryCount: Int = 0) {
+            if (maxRetryCount == retryCount) {
+               fail { "After $maxRetryCount tries the endpoint is still not available" }
+            }
+
+            handleRequest(HttpMethod.Get, "/api/behov/periode?fom=2019-11-01&tom=2019-11-02") {
+               addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
+               addHeader(HttpHeaders.Authorization, "Bearer $token")
+               addHeader(HttpHeaders.Origin, "http://localhost")
+            }.apply {
+               if (response.status() == HttpStatusCode.ServiceUnavailable || response.status() == HttpStatusCode.NotFound) {
+                  Thread.sleep(1000)
+                  makeRequest(maxRetryCount, retryCount + 1)
+               } else {
+                  assertEquals(HttpStatusCode.OK, response.status())
+
+                  val reader = defaultObjectMapper.readerFor(object : TypeReference<List<JsonNode>>() {})
+                  val behovliste: List<JsonNode> = reader.readValue(response.content)
+
+                  assertEquals(2, behovliste.size)
+                  assertTrue(behovliste.contains(defaultObjectMapper.valueToTree(behov)))
+                  assertTrue(behovliste.contains(defaultObjectMapper.valueToTree(behov2)))
+               }
+            }
+         }
+
+         makeRequest(20)
+      }
    }
 
-   private fun produceOneMessage(message: JsonNode) {
+   private fun produceOneMessage(topic: String = behovTopic, message: Map<String, String> = etBehov) {
+      val jsonMessage: JsonNode = defaultObjectMapper.valueToTree<JsonNode>(message)
       val producer = KafkaProducer<String, JsonNode>(producerProperties())
-      producer.send(ProducerRecord("aapen-helse-sykepenger-vedtak", message))
+      producer.send(ProducerRecord(topic, jsonMessage))
       producer.flush()
    }
 
@@ -249,6 +393,11 @@ class SpadeComponentTest {
          put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, "org.apache.kafka.common.serialization.StringSerializer")
          put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonNodeSerializer::class.java)
          put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT")
+         // Make sure our producer waits until the message is received by Kafka before returning. This is to make sure the tests can send messages in a specific order
+         put(ProducerConfig.ACKS_CONFIG, "all")
+         put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1")
+         put(ProducerConfig.LINGER_MS_CONFIG, "0")
+         put(ProducerConfig.RETRIES_CONFIG, "0")
          put(SaslConfigs.SASL_MECHANISM, "PLAIN")
          put(SaslConfigs.SASL_JAAS_CONFIG, "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$username\" password=\"$password\";")
       }
@@ -268,6 +417,7 @@ class SpadeComponentTest {
          put("kafka.app-id", "spade-v1")
          put("kafka.store-name", "sykepenger-state-store")
          put("kafka.bootstrap-servers", embeddedEnvironment.brokersURL)
+         put("kafka.commit-interval-ms-config", "100")
          put("service.username", username)
          put("service.password", password)
          put("DB_CREDS_PATH_ADMIN", "adminpath")
