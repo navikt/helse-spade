@@ -9,9 +9,11 @@ import com.github.tomakehurst.wiremock.core.*
 import io.ktor.config.*
 import io.ktor.http.*
 import io.ktor.server.engine.*
+import io.ktor.server.netty.*
 import io.ktor.server.testing.*
 import io.ktor.util.*
 import no.nav.common.*
+import no.nav.helse.kafka.*
 import no.nav.helse.serde.*
 import no.nav.helse.spade.*
 import no.nav.helse.spade.behandlinger.BehandlingSummary
@@ -21,7 +23,9 @@ import org.apache.kafka.common.config.*
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.*
 import java.io.*
+import java.net.*
 import java.util.*
+import java.util.concurrent.*
 
 class SpadeComponentTest {
 
@@ -36,14 +40,13 @@ class SpadeComponentTest {
          autoStart = false,
          withSchemaRegistry = false,
          withSecurity = true,
-         topics = listOf("aapen-helse-sykepenger-vedtak", "privat-helse-sykepenger-behandlingsfeil")
+         topics = listOf(Topics.behovTopic)
       )
 
       @BeforeAll
       @JvmStatic
       fun start() {
          server.start()
-
          embeddedEnvironment.start()
       }
 
@@ -230,7 +233,66 @@ class SpadeComponentTest {
       }
    }
 
+   @Test
+   @KtorExperimentalAPI
+   fun `alle behov for en person`() {
+      val jwkStub = JwtStub("test issuer", server.baseUrl())
+      val token = jwkStub.createTokenFor("mygroup")
+
+      produserEnOKBehandling()
+
+      stubFor(jwkStub.stubbedJwkProvider())
+      stubFor(jwkStub.stubbedConfigProvider())
+
+      withApplication(
+         environment = createTestEnvironment {
+            fakeConfig(this)
+
+            connector {
+               port = 8080
+            }
+
+            module {
+               spade()
+            }
+         }) {
+
+         fun makeRequest(fom: String, tom: String, maxRetryCount: Int, retryCount: Int = 0) {
+            if (maxRetryCount == retryCount) {
+               fail { "After $maxRetryCount tries the endpoint is still not available" }
+            }
+
+            handleRequest(HttpMethod.Get, "/api/behov/12345") {
+               addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
+               addHeader(HttpHeaders.Authorization, "Bearer $token")
+               addHeader(HttpHeaders.Origin, "http://localhost")
+            }.apply {
+               if (response.status() == HttpStatusCode.ServiceUnavailable || response.status() == HttpStatusCode.NotFound) {
+                  Thread.sleep(1000)
+                  makeRequest(fom, tom, maxRetryCount, retryCount + 1)
+               } else {
+                  assertEquals(HttpStatusCode.OK, response.status())
+
+                  val reader = defaultObjectMapper.readerFor(object : TypeReference<List<Map<String, String>>>() {})
+                  val behovliste: List<Map<String, String>> = reader.readValue(response.content)
+                  
+                  assertTrue(behandlinger.isNotEmpty())
+               }
+            }
+         }
+
+         makeRequest(fom, tom, 20)
+      }
+   }
+
    private fun produserEnOKBehandling() {
+      val behov = "/behov/behov.json".readResource()
+      val json = defaultObjectMapper.readValue(behov, JsonNode::class.java)
+
+      produceOneMessage(json)
+   }
+
+   private fun produserEtUløstBehov() {
       val søknad = "/behandling_ok.json".readResource()
       val json = defaultObjectMapper.readValue(søknad, JsonNode::class.java)
 
@@ -239,7 +301,7 @@ class SpadeComponentTest {
 
    private fun produceOneMessage(message: JsonNode) {
       val producer = KafkaProducer<String, JsonNode>(producerProperties())
-      producer.send(ProducerRecord("aapen-helse-sykepenger-vedtak", message))
+      producer.send(ProducerRecord(Topics.behovTopic, message))
       producer.flush()
    }
 
