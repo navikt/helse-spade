@@ -3,7 +3,7 @@ Spade
 
 [![CircleCI](https://circleci.com/gh/navikt/helse-spade.svg?style=svg)](https://circleci.com/gh/navikt/helse-spade)
 
-Graver frem sykepengebehandlinger for en aktør.
+Graver frem sykepengesaker som skal godkjennes av en saksbehandler.
 
 # Henvendelser
 
