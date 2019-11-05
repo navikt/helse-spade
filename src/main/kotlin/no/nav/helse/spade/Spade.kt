@@ -13,12 +13,16 @@ import io.ktor.routing.*
 import io.ktor.util.*
 import no.nav.helse.http.*
 import no.nav.helse.nais.*
+import no.nav.helse.serde.*
 import no.nav.helse.spade.behov.BehovConsumer
 import no.nav.helse.spade.behov.BehovService
 import no.nav.helse.spade.behov.KafkaBehovRepository
 import no.nav.helse.spade.behov.behov
+import no.nav.helse.spade.godkjenning.*
 import org.apache.kafka.clients.*
+import org.apache.kafka.clients.producer.*
 import org.apache.kafka.common.config.*
+import org.apache.kafka.common.serialization.*
 import org.apache.kafka.streams.*
 import org.apache.kafka.streams.errors.*
 import org.slf4j.*
@@ -113,6 +117,7 @@ fun Application.spade() {
    routing {
       authenticate {
          behov(behovService)
+         godkjenning(KafkaProducer(producerConfig()), behovService)
       }
    }
 }
@@ -126,14 +131,35 @@ private fun Application.streamConfig() = Properties().apply {
    put(StreamsConfig.COMMIT_INTERVAL_MS_CONFIG, environment.config.propertyOrNull("kafka.commit-interval-ms-config")?.getString() ?: "1000")
 
    put(SaslConfigs.SASL_MECHANISM, "PLAIN")
-   put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT")
 
+   putAll(commonProps())
+}
+
+@KtorExperimentalAPI
+private fun Application.producerConfig() = Properties().apply {
+   put(CommonClientConfigs.BOOTSTRAP_SERVERS_CONFIG, environment.config.property("kafka.bootstrap-servers").getString())
+   put(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java)
+   put(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, JsonNodeSerializer::class.java)
+   // Make sure our producer waits until the message is received by Kafka before returning. This is to make sure the tests can send messages in a specific order
+   put(ProducerConfig.ACKS_CONFIG, "all")
+   put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1")
+   put(ProducerConfig.LINGER_MS_CONFIG, "0")
+   put(ProducerConfig.RETRIES_CONFIG, "0")
+   put(ProducerConfig.CLIENT_ID_CONFIG, environment.config.property("kafka.app-id").getString())
+   put(SaslConfigs.SASL_MECHANISM, "PLAIN")
+
+   putAll(commonProps())
+}
+
+@KtorExperimentalAPI
+fun Application.commonProps() = Properties().apply {
    environment.config.propertyOrNull("service.username")?.getString()?.let { username ->
       environment.config.propertyOrNull("service.password")?.getString()?.let { password ->
          put(SaslConfigs.SASL_JAAS_CONFIG, "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$username\" password=\"$password\";")
       }
    }
 
+   put(CommonClientConfigs.SECURITY_PROTOCOL_CONFIG, "SASL_PLAINTEXT")
    environment.config.propertyOrNull("kafka.truststore-path")?.getString()?.let { truststorePath ->
       environment.config.propertyOrNull("kafka.truststore-password")?.getString().let { truststorePassword ->
          try {
@@ -147,4 +173,5 @@ private fun Application.streamConfig() = Properties().apply {
       }
    }
 }
+
 

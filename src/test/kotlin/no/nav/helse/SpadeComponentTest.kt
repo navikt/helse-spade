@@ -380,6 +380,64 @@ class SpadeComponentTest {
       }
    }
 
+   @Test
+   @KtorExperimentalAPI
+   fun `godkjenning av utbetaling`() {
+      val jwkStub = JwtStub("test issuer", server.baseUrl())
+      val token = jwkStub.createTokenFor("mygroup")
+
+      stubFor(jwkStub.stubbedJwkProvider())
+      stubFor(jwkStub.stubbedConfigProvider())
+
+      val origBehov = mapOf(
+         "@behov" to "GodkjenningFraSaksbehandler",
+         "@id" to "ea5d644b-ffb9-4c32-bbd9-f93744554d5e",
+         "@opprettet" to "2019-11-03T00:00:00.000000",
+         "aktørId" to "9999999999",
+         "organisasjonsnummer" to "123456789",
+         "sakskompleksId" to "sakskompleks-uuid"
+      )
+
+      produceOneMessage(behovTopic, origBehov)
+
+      withApplication(
+         environment = createTestEnvironment {
+            fakeConfig(this)
+
+            connector {
+               port = 8080
+            }
+
+            module {
+               spade()
+            }
+         }) {
+
+         fun makeRequest(maxRetryCount: Int, retryCount: Int = 0) {
+            if (maxRetryCount == retryCount) {
+               fail { "After $maxRetryCount tries the endpoint is still not available" }
+            }
+
+            handleRequest(HttpMethod.Post, "/api/godkjenning") {
+               addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
+               addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+               addHeader(HttpHeaders.Authorization, "Bearer $token")
+               addHeader(HttpHeaders.Origin, "http://localhost")
+               setBody("""{"@id": "${origBehov["@id"]}", "aktørId": "${origBehov["aktørId"]}", "godkjent": true, "@behov": "${origBehov["@behov"]}"}""")
+            }.apply {
+               if (response.status() == HttpStatusCode.ServiceUnavailable || response.status() == HttpStatusCode.NotFound) {
+                  Thread.sleep(1000)
+                  makeRequest(maxRetryCount, retryCount + 1)
+               } else {
+                  assertEquals(HttpStatusCode.Created, response.status())
+               }
+            }
+         }
+
+         makeRequest(20)
+      }
+   }
+
    private fun produceOneMessage(topic: String = behovTopic, message: Map<String, String> = etBehov) {
       val jsonMessage: JsonNode = defaultObjectMapper.valueToTree<JsonNode>(message)
       val producer = KafkaProducer<String, JsonNode>(producerProperties())
@@ -397,13 +455,10 @@ class SpadeComponentTest {
          put(ProducerConfig.ACKS_CONFIG, "all")
          put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1")
          put(ProducerConfig.LINGER_MS_CONFIG, "0")
-         put(ProducerConfig.RETRIES_CONFIG, "0")
          put(SaslConfigs.SASL_MECHANISM, "PLAIN")
          put(SaslConfigs.SASL_JAAS_CONFIG, "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$username\" password=\"$password\";")
       }
    }
-
-   private fun String.readResource() = object {}.javaClass.getResource(this)?.readText(Charsets.UTF_8) ?: fail { "did not find <$this>" }
 
    @KtorExperimentalAPI
    private fun fakeConfig(envBuilder: ApplicationEngineEnvironmentBuilder) =
@@ -422,6 +477,26 @@ class SpadeComponentTest {
          put("service.password", password)
          put("DB_CREDS_PATH_ADMIN", "adminpath")
          put("DB_CREDS_PATH_USER", "userpath")
+         put("security.protocol", "SASL_PLAINTEXT")
       }
+
+   private fun withTestKtor(f: (TestApplicationEngine) -> Unit) {
+      val jwkStub = JwtStub("test issuer", server.baseUrl())
+      stubFor(jwkStub.stubbedJwkProvider())
+      stubFor(jwkStub.stubbedConfigProvider())
+
+      withApplication(
+         environment = createTestEnvironment {
+            fakeConfig(this)
+
+            connector {
+               port = 8080
+            }
+
+            module {
+               spade()
+            }
+         }) { f(this) }
+   }
 
 }

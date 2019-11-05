@@ -39,7 +39,7 @@ class BehovConsumer(props: Properties, private val storeName: String) {
       const val aktørIdKey = "aktørId"
       const val løsningKey = "@løsning"
       const val behovKey = "@behov"
-      const val trengerGodkjenningValue = "GodkjenningFraSaksbehandler"
+      const val trengerGodkjenning = "GodkjenningFraSaksbehandler"
    }
 
    fun topology(storeName: String): Topology {
@@ -57,12 +57,10 @@ class BehovConsumer(props: Properties, private val storeName: String) {
          .withValueSerde(listValueSerde)
 
       behovStream
-         .filter { _, value -> value[behovKey].asText() == trengerGodkjenningValue }
+         .filter { _, value -> value[behovKey].asText() == trengerGodkjenning }
          .filter { _, value -> value[løsningKey] == null }
          .groupBy({ _, value -> value[aktørIdKey].asText() }, Serialized.with(keySerde, valueSerde))
-         .aggregate({
-            emptyList()
-         }, { _, value, aggregated ->
+         .aggregate({ emptyList() }, { _, value, aggregated ->
             aggregated.toMutableList().apply { add(value) }
          }, materialized)
 
