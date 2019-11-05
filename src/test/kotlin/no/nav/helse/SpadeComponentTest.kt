@@ -83,19 +83,8 @@ class SpadeComponentTest {
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
 
-      withApplication(
-         environment = createTestEnvironment {
-            fakeConfig(this)
-
-            connector {
-               port = 8080
-            }
-
-            module {
-               spade()
-            }
-         }) {
-         handleRequest(HttpMethod.Get, "/api/behov/$enAktørId") {}.apply {
+      withTestKtor {
+         it.handleRequest(HttpMethod.Get, "/api/behov/$enAktørId") {}.apply {
             assertEquals(HttpStatusCode.Unauthorized, response.status())
          }
       }
@@ -112,21 +101,10 @@ class SpadeComponentTest {
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
 
-      withApplication(
-         environment = createTestEnvironment {
-            fakeConfig(this)
-
-            connector {
-               port = 8080
-            }
-
-            module {
-               spade()
-            }
-         }) {
+      withTestKtor {
 
          fun makeRequest(aktørId: String) {
-            handleRequest(HttpMethod.Get, "/api/behov/$aktørId") {
+            it.handleRequest(HttpMethod.Get, "/api/behov/$aktørId") {
                addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
                addHeader(HttpHeaders.Origin, "http://localhost")
@@ -150,21 +128,10 @@ class SpadeComponentTest {
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
 
-      withApplication(
-         environment = createTestEnvironment {
-            fakeConfig(this)
-
-            connector {
-               port = 8080
-            }
-
-            module {
-               spade()
-            }
-         }) {
+      withTestKtor {
 
          fun makeRequest(aktørId: String) {
-            handleRequest(HttpMethod.Get, "/api/behov/$aktørId") {
+            it.handleRequest(HttpMethod.Get, "/api/behov/$aktørId") {
                addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
                addHeader(HttpHeaders.Origin, "http://localhost")
@@ -198,25 +165,14 @@ class SpadeComponentTest {
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
 
-      withApplication(
-         environment = createTestEnvironment {
-            fakeConfig(this)
-
-            connector {
-               port = 8080
-            }
-
-            module {
-               spade()
-            }
-         }) {
+      withTestKtor {
 
          fun makeRequest(maxRetryCount: Int, retryCount: Int = 0) {
             if (maxRetryCount == retryCount) {
                fail { "After $maxRetryCount tries the endpoint is still not available" }
             }
 
-            handleRequest(HttpMethod.Get, "/api/behov/$endaEnAktørId") {
+            it.handleRequest(HttpMethod.Get, "/api/behov/$endaEnAktørId") {
                addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
                addHeader(HttpHeaders.Origin, "http://localhost")
@@ -255,25 +211,14 @@ class SpadeComponentTest {
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
 
-      withApplication(
-         environment = createTestEnvironment {
-            fakeConfig(this)
-
-            connector {
-               port = 8080
-            }
-
-            module {
-               spade()
-            }
-         }) {
+      withTestKtor {
 
          fun makeRequest(maxRetryCount: Int, retryCount: Int = 0) {
             if (maxRetryCount == retryCount) {
                fail { "After $maxRetryCount tries the endpoint is still not available" }
             }
 
-            handleRequest(HttpMethod.Get, "/api/behov/$enAnnenAktørId") {
+            it.handleRequest(HttpMethod.Get, "/api/behov/$enAnnenAktørId") {
                addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
                addHeader(HttpHeaders.Origin, "http://localhost")
@@ -337,25 +282,14 @@ class SpadeComponentTest {
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
 
-      withApplication(
-         environment = createTestEnvironment {
-            fakeConfig(this)
-
-            connector {
-               port = 8080
-            }
-
-            module {
-               spade()
-            }
-         }) {
+      withTestKtor {
 
          fun makeRequest(maxRetryCount: Int, retryCount: Int = 0) {
             if (maxRetryCount == retryCount) {
                fail { "After $maxRetryCount tries the endpoint is still not available" }
             }
 
-            handleRequest(HttpMethod.Get, "/api/behov/periode?fom=2019-11-01&tom=2019-11-02") {
+            it.handleRequest(HttpMethod.Get, "/api/behov/periode?fom=2019-11-01&tom=2019-11-02") {
                addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
                addHeader(HttpHeaders.Origin, "http://localhost")
@@ -384,7 +318,6 @@ class SpadeComponentTest {
    @KtorExperimentalAPI
    fun `godkjenning av utbetaling`() {
       val jwkStub = JwtStub("test issuer", server.baseUrl())
-      val token = jwkStub.createTokenFor("mygroup")
 
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
@@ -400,25 +333,15 @@ class SpadeComponentTest {
 
       produceOneMessage(behovTopic, origBehov)
 
-      withApplication(
-         environment = createTestEnvironment {
-            fakeConfig(this)
-
-            connector {
-               port = 8080
-            }
-
-            module {
-               spade()
-            }
-         }) {
+      withTestKtor {
+         val token = jwkStub.createTokenFor("mygroup")
 
          fun makeRequest(maxRetryCount: Int, retryCount: Int = 0) {
             if (maxRetryCount == retryCount) {
                fail { "After $maxRetryCount tries the endpoint is still not available" }
             }
 
-            handleRequest(HttpMethod.Post, "/api/godkjenning") {
+            it.handleRequest(HttpMethod.Post, "/api/godkjenning") {
                addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
@@ -481,9 +404,6 @@ class SpadeComponentTest {
       }
 
    private fun withTestKtor(f: (TestApplicationEngine) -> Unit) {
-      val jwkStub = JwtStub("test issuer", server.baseUrl())
-      stubFor(jwkStub.stubbedJwkProvider())
-      stubFor(jwkStub.stubbedConfigProvider())
 
       withApplication(
          environment = createTestEnvironment {
