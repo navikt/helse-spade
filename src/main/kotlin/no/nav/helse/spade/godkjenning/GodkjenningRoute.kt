@@ -20,9 +20,9 @@ fun Route.godkjenning(kafkaProducer: KafkaProducer<String, JsonNode>, service: B
          { err -> call.respondFeil(err.toHttpFeil()) },
          {
             val fromStore = it.first() { it["@id"].asText() == fromSpeil["@id"].asText() } as ObjectNode
-            fromStore.put("godkjent", fromSpeil["godkjent"].asBoolean())
+            fromStore.put("@løsning", fromSpeil["godkjent"].asBoolean())
             kafkaProducer
-               .send(ProducerRecord(behovTopic, fromStore["sakskompleksId"].asText(), fromStore)).get(5, TimeUnit.SECONDS)
+               .send(ProducerRecord(behovTopic, fromStore["@id"].asText(), fromStore)).get(5, TimeUnit.SECONDS)
             call.respond(HttpStatusCode.Created)
          }
       )
