@@ -2,6 +2,7 @@ package no.nav.helse
 
 import com.fasterxml.jackson.core.type.*
 import com.fasterxml.jackson.databind.*
+import com.fasterxml.jackson.databind.node.*
 import com.github.tomakehurst.wiremock.*
 import com.github.tomakehurst.wiremock.client.*
 import com.github.tomakehurst.wiremock.client.WireMock.*
@@ -28,16 +29,6 @@ class SpadeComponentTest {
    companion object {
       private const val username = "srvkafkaclient"
       private const val password = "kafkaclient"
-
-      val enAktørId = "12345678910"
-      val etBehov = mapOf(
-         "@behov" to "GodkjenningFraSaksbehandler",
-         "@id" to "ea5d644b-ffb9-4c32-bbd9-f93744554d5e",
-         "@opprettet" to "2019-11-01T08:38:00.728127",
-         "aktørId" to enAktørId,
-         "organisasjonsnummer" to "123456789",
-         "sakskompleksId" to "sakskompleks-uuid"
-      )
 
       val server: WireMockServer = WireMockServer(WireMockConfiguration.options().dynamicPort())
 
@@ -84,7 +75,7 @@ class SpadeComponentTest {
       stubFor(jwkStub.stubbedConfigProvider())
 
       withTestKtor {
-         it.handleRequest(HttpMethod.Get, "/api/behov/$enAktørId") {}.apply {
+         it.handleRequest(HttpMethod.Get, "/api/behov/whatever") {}.apply {
             assertEquals(HttpStatusCode.Unauthorized, response.status())
          }
       }
@@ -96,13 +87,11 @@ class SpadeComponentTest {
       val jwkStub = JwtStub("test issuer", server.baseUrl())
       val token = jwkStub.createTokenFor("mygroup", "wrong_audience")
 
-      produceOneMessage()
-
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
 
       withTestKtor {
-         it.handleRequest(HttpMethod.Get, "/api/behov/$enAktørId") {
+         it.handleRequest(HttpMethod.Get, "/api/behov/whatever") {
             addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
             addHeader(HttpHeaders.Authorization, "Bearer $token")
             addHeader(HttpHeaders.Origin, "http://localhost")
@@ -118,13 +107,11 @@ class SpadeComponentTest {
       val jwkStub = JwtStub("test issuer", server.baseUrl())
       val token = jwkStub.createTokenFor("group not matching requiredGroup")
 
-      produceOneMessage()
-
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
 
       withTestKtor {
-         it.handleRequest(HttpMethod.Get, "/api/behov/$enAktørId") {
+         it.handleRequest(HttpMethod.Get, "/api/behov/whatever") {
             addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
             addHeader(HttpHeaders.Authorization, "Bearer $token")
             addHeader(HttpHeaders.Origin, "http://localhost")
@@ -136,21 +123,12 @@ class SpadeComponentTest {
 
    @Test
    @KtorExperimentalAPI
-   fun `andre behov filtreres vekk`() {
+   fun `behov for andre enn forespurt aktør filtreres vekk`() {
       val jwkStub = JwtStub("test issuer", server.baseUrl())
       val token = jwkStub.createTokenFor("mygroup")
 
-      val aktøren = "11109876543"
-      val behov = mapOf(
-         "@behov" to "Sykepengehistorikk",
-         "@id" to "ea5d644b-ffb9-4c32-bbd9-f93744554d5e",
-         "@opprettet" to "2019-11-01T08:38:00.728127",
-         "aktørId" to aktøren,
-         "organisasjonsnummer" to "123456789",
-         "sakskompleksId" to "sakskompleks-uuid"
-      )
-
-      produceOneMessage(behovTopic, behov)
+      produceOneMessage("12345678910")
+      produceOneMessage("12345678911")
 
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
@@ -162,7 +140,7 @@ class SpadeComponentTest {
                fail { "After $maxRetryCount tries the endpoint is still not available" }
             }
 
-            it.handleRequest(HttpMethod.Get, "/api/behov/$aktøren") {
+            it.handleRequest(HttpMethod.Get, "/api/behov/12345678910") {
                addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
                addHeader(HttpHeaders.Origin, "http://localhost")
@@ -171,7 +149,10 @@ class SpadeComponentTest {
                   Thread.sleep(1000)
                   makeRequest(maxRetryCount, retryCount + 1)
                } else {
-                  assertEquals(HttpStatusCode.NotFound, response.status())
+                  assertEquals(HttpStatusCode.OK, response.status())
+                  val reader = defaultObjectMapper.readerFor(object : TypeReference<List<JsonNode>>() {})
+                  val behovliste: List<JsonNode> = reader.readValue(response.content)
+                  assertEquals(1, behovliste.size)
                }
             }
          }
@@ -182,27 +163,18 @@ class SpadeComponentTest {
 
    @Test
    @KtorExperimentalAPI
-   fun `alle behov for en person`() {
+   fun `aktør kan ha flere enn 1 behov`() {
       val jwkStub = JwtStub("test issuer", server.baseUrl())
       val token = jwkStub.createTokenFor("mygroup")
 
-      val aktøren = "10987654321"
-      val behov = mapOf(
-         "@behov" to "GodkjenningFraSaksbehandler",
-         "@id" to "ea5d644b-ffb9-4c32-bbd9-f93744554d5e",
-         "@opprettet" to "2019-11-01T08:38:00.728127",
-         "aktørId" to aktøren,
-         "organisasjonsnummer" to "123456789",
-         "sakskompleksId" to "sakskompleks-uuid"
-      )
-
-      produceOneMessage(behovTopic, behov)
+      val aktøren = "12345678912"
+      produceOneMessage(aktøren)
+      produceOneMessage(aktøren)
 
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
 
       withTestKtor {
-
          fun makeRequest(maxRetryCount: Int, retryCount: Int = 0) {
             if (maxRetryCount == retryCount) {
                fail { "After $maxRetryCount tries the endpoint is still not available" }
@@ -218,12 +190,9 @@ class SpadeComponentTest {
                   makeRequest(maxRetryCount, retryCount + 1)
                } else {
                   assertEquals(HttpStatusCode.OK, response.status())
-
                   val reader = defaultObjectMapper.readerFor(object : TypeReference<List<JsonNode>>() {})
                   val behovliste: List<JsonNode> = reader.readValue(response.content)
-
-                  assertEquals(1, behovliste.size)
-                  assertEquals(defaultObjectMapper.valueToTree(behov), behovliste[0])
+                  assertEquals(2, behovliste.size)
                }
             }
          }
@@ -238,36 +207,9 @@ class SpadeComponentTest {
       val jwkStub = JwtStub("test issuer", server.baseUrl())
       val token = jwkStub.createTokenFor("mygroup")
 
-      val behov = mapOf(
-         "@behov" to "GodkjenningFraSaksbehandler",
-         "@id" to "ea5d644b-ffb9-4c32-bbd9-f93744554d5e",
-         "@opprettet" to "2019-11-01T00:00:00.000000",
-         "aktørId" to "12345678910",
-         "organisasjonsnummer" to "123456789",
-         "sakskompleksId" to "sakskompleks-uuid"
-      )
-
-      val behov2 = mapOf(
-         "@behov" to "GodkjenningFraSaksbehandler",
-         "@id" to "ea5d644b-ffb9-4c32-bbd9-f93744554d5e",
-         "@opprettet" to "2019-11-02T00:00:00.000000",
-         "aktørId" to "23456789101",
-         "organisasjonsnummer" to "123456789",
-         "sakskompleksId" to "sakskompleks-uuid"
-      )
-
-      val behovUtenforPeriode = mapOf(
-         "@behov" to "GodkjenningFraSaksbehandler",
-         "@id" to "ea5d644b-ffb9-4c32-bbd9-f93744554d5e",
-         "@opprettet" to "2019-11-03T00:00:00.000000",
-         "aktørId" to "34567891011",
-         "organisasjonsnummer" to "123456789",
-         "sakskompleksId" to "sakskompleks-uuid"
-      )
-
-      produceOneMessage(behovTopic, behov)
-      produceOneMessage(behovTopic, behov2)
-      produceOneMessage(behovTopic, behovUtenforPeriode)
+      produceOneMessage("12345678913", "2019-11-10T00:00:00.000000")
+      produceOneMessage("12345678914", "2019-11-12T00:00:00.000000")
+      produceOneMessage("12345678915", "2019-11-13T00:00:00.000000")
 
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
@@ -279,7 +221,7 @@ class SpadeComponentTest {
                fail { "After $maxRetryCount tries the endpoint is still not available" }
             }
 
-            it.handleRequest(HttpMethod.Get, "/api/behov/periode?fom=2019-11-01&tom=2019-11-02") {
+            it.handleRequest(HttpMethod.Get, "/api/behov/periode?fom=2019-10-01&tom=2019-11-12") {
                addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
                addHeader(HttpHeaders.Origin, "http://localhost")
@@ -294,8 +236,6 @@ class SpadeComponentTest {
                   val behovliste: List<JsonNode> = reader.readValue(response.content)
 
                   assertEquals(2, behovliste.size)
-                  assertTrue(behovliste.contains(defaultObjectMapper.valueToTree(behov)))
-                  assertTrue(behovliste.contains(defaultObjectMapper.valueToTree(behov2)))
                }
             }
          }
@@ -312,16 +252,11 @@ class SpadeComponentTest {
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
 
-      val origBehov = mapOf(
-         "@behov" to "GodkjenningFraSaksbehandler",
-         "@id" to "ea5d644b-ffb9-4c32-bbd9-f93744554d5e",
-         "@opprettet" to "2019-11-03T00:00:00.000000",
-         "aktørId" to "9999999999",
-         "organisasjonsnummer" to "123456789",
-         "sakskompleksId" to "sakskompleks-uuid"
-      )
-
-      produceOneMessage(behovTopic, origBehov)
+      produceOneMessage("12345678916")
+      val origBehov = (defaultObjectMapper.readTree(
+         File("src/test/resources/behov/behov.json").readText()) as ObjectNode).apply {
+         put("aktørId", "12345678916")
+      }
 
       withTestKtor {
          val token = jwkStub.createTokenFor("mygroup")
@@ -335,7 +270,7 @@ class SpadeComponentTest {
                addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
                addHeader(HttpHeaders.Origin, "http://localhost")
-               setBody("""{"@id": "${origBehov["@id"]}", "aktørId": "${origBehov["aktørId"]}", "godkjent": true, "@behov": "${origBehov["@behov"]}"}""")
+               setBody("""{"@id": "${origBehov["@id"].asText()}", "aktørId": "${origBehov["aktørId"].asText()}", "godkjent": true, "@behov": "${origBehov["@behov"].asText()}"}""")
             }.apply {
                if (response.status() == HttpStatusCode.ServiceUnavailable || response.status() == HttpStatusCode.NotFound) {
                   Thread.sleep(1000)
@@ -349,10 +284,15 @@ class SpadeComponentTest {
       }
    }
 
-   private fun produceOneMessage(topic: String = behovTopic, message: Map<String, String> = etBehov) {
-      val jsonMessage: JsonNode = defaultObjectMapper.valueToTree<JsonNode>(message)
+   private fun produceOneMessage(aktørId: String, timestamp: String? = null) {
+      val message = defaultObjectMapper.readTree(
+         File("src/test/resources/behov/behov.json").readText()) as ObjectNode
+      message.put("aktørId", aktørId)
+      timestamp?.let {
+         message.put("@opprettet", timestamp)
+      }
       val producer = KafkaProducer<String, JsonNode>(producerProperties())
-      producer.send(ProducerRecord(topic, jsonMessage))
+      producer.send(ProducerRecord(behovTopic, message))
       producer.flush()
    }
 
@@ -394,6 +334,7 @@ class SpadeComponentTest {
          put(ProducerConfig.LINGER_MS_CONFIG, "0")
       }
 
+   @KtorExperimentalAPI
    private fun withTestKtor(f: (TestApplicationEngine) -> Unit) {
 
       withApplication(
