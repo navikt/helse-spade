@@ -102,18 +102,13 @@ class SpadeComponentTest {
       stubFor(jwkStub.stubbedConfigProvider())
 
       withTestKtor {
-
-         fun makeRequest(aktørId: String) {
-            it.handleRequest(HttpMethod.Get, "/api/behov/$aktørId") {
-               addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
-               addHeader(HttpHeaders.Authorization, "Bearer $token")
-               addHeader(HttpHeaders.Origin, "http://localhost")
-            }.apply {
-               assertEquals(HttpStatusCode.Unauthorized, response.status())
-            }
+         it.handleRequest(HttpMethod.Get, "/api/behov/$enAktørId") {
+            addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
+            addHeader(HttpHeaders.Authorization, "Bearer $token")
+            addHeader(HttpHeaders.Origin, "http://localhost")
+         }.apply {
+            assertEquals(HttpStatusCode.Unauthorized, response.status())
          }
-
-         makeRequest(enAktørId)
       }
    }
 
@@ -129,18 +124,13 @@ class SpadeComponentTest {
       stubFor(jwkStub.stubbedConfigProvider())
 
       withTestKtor {
-
-         fun makeRequest(aktørId: String) {
-            it.handleRequest(HttpMethod.Get, "/api/behov/$aktørId") {
-               addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
-               addHeader(HttpHeaders.Authorization, "Bearer $token")
-               addHeader(HttpHeaders.Origin, "http://localhost")
-            }.apply {
-               assertEquals(HttpStatusCode.Unauthorized, response.status())
-            }
+         it.handleRequest(HttpMethod.Get, "/api/behov/$enAktørId") {
+            addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
+            addHeader(HttpHeaders.Authorization, "Bearer $token")
+            addHeader(HttpHeaders.Origin, "http://localhost")
+         }.apply {
+            assertEquals(HttpStatusCode.Unauthorized, response.status())
          }
-
-         makeRequest(enAktørId)
       }
    }
 
@@ -150,12 +140,12 @@ class SpadeComponentTest {
       val jwkStub = JwtStub("test issuer", server.baseUrl())
       val token = jwkStub.createTokenFor("mygroup")
 
-      val endaEnAktørId = "11109876543"
+      val aktøren = "11109876543"
       val behov = mapOf(
          "@behov" to "Sykepengehistorikk",
          "@id" to "ea5d644b-ffb9-4c32-bbd9-f93744554d5e",
          "@opprettet" to "2019-11-01T08:38:00.728127",
-         "aktørId" to endaEnAktørId,
+         "aktørId" to aktøren,
          "organisasjonsnummer" to "123456789",
          "sakskompleksId" to "sakskompleks-uuid"
       )
@@ -172,7 +162,7 @@ class SpadeComponentTest {
                fail { "After $maxRetryCount tries the endpoint is still not available" }
             }
 
-            it.handleRequest(HttpMethod.Get, "/api/behov/$endaEnAktørId") {
+            it.handleRequest(HttpMethod.Get, "/api/behov/$aktøren") {
                addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
                addHeader(HttpHeaders.Origin, "http://localhost")
@@ -196,12 +186,12 @@ class SpadeComponentTest {
       val jwkStub = JwtStub("test issuer", server.baseUrl())
       val token = jwkStub.createTokenFor("mygroup")
 
-      val enAnnenAktørId = "10987654321"
+      val aktøren = "10987654321"
       val behov = mapOf(
          "@behov" to "GodkjenningFraSaksbehandler",
          "@id" to "ea5d644b-ffb9-4c32-bbd9-f93744554d5e",
          "@opprettet" to "2019-11-01T08:38:00.728127",
-         "aktørId" to enAnnenAktørId,
+         "aktørId" to aktøren,
          "organisasjonsnummer" to "123456789",
          "sakskompleksId" to "sakskompleks-uuid"
       )
@@ -218,7 +208,7 @@ class SpadeComponentTest {
                fail { "After $maxRetryCount tries the endpoint is still not available" }
             }
 
-            it.handleRequest(HttpMethod.Get, "/api/behov/$enAnnenAktørId") {
+            it.handleRequest(HttpMethod.Get, "/api/behov/$aktøren") {
                addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
                addHeader(HttpHeaders.Origin, "http://localhost")
@@ -340,7 +330,6 @@ class SpadeComponentTest {
             if (maxRetryCount == retryCount) {
                fail { "After $maxRetryCount tries the endpoint is still not available" }
             }
-
             it.handleRequest(HttpMethod.Post, "/api/godkjenning") {
                addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
@@ -356,7 +345,6 @@ class SpadeComponentTest {
                }
             }
          }
-
          makeRequest(20)
       }
    }
@@ -377,7 +365,7 @@ class SpadeComponentTest {
          // Make sure our producer waits until the message is received by Kafka before returning. This is to make sure the tests can send messages in a specific order
          put(ProducerConfig.ACKS_CONFIG, "all")
          put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1")
-         put(ProducerConfig.LINGER_MS_CONFIG, "0")
+         put(ProducerConfig.LINGER_MS_CONFIG, "10")
          put(SaslConfigs.SASL_MECHANISM, "PLAIN")
          put(SaslConfigs.SASL_JAAS_CONFIG, "org.apache.kafka.common.security.plain.PlainLoginModule required username=\"$username\" password=\"$password\";")
       }
@@ -401,6 +389,9 @@ class SpadeComponentTest {
          put("DB_CREDS_PATH_ADMIN", "adminpath")
          put("DB_CREDS_PATH_USER", "userpath")
          put("security.protocol", "SASL_PLAINTEXT")
+         put(ProducerConfig.ACKS_CONFIG, "all")
+         put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1")
+         put(ProducerConfig.LINGER_MS_CONFIG, "0")
       }
 
    private fun withTestKtor(f: (TestApplicationEngine) -> Unit) {
