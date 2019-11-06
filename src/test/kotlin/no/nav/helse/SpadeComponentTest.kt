@@ -270,7 +270,7 @@ class SpadeComponentTest {
                addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
                addHeader(HttpHeaders.Origin, "http://localhost")
-               setBody("""{"@id": "${origBehov["@id"].asText()}", "aktørId": "${origBehov["aktørId"].asText()}", "godkjent": true, "@behov": "${origBehov["@behov"].asText()}"}""")
+               setBody("""{"aktørId": "${origBehov["aktørId"].asText()}", "behovId": "${origBehov["@id"].asText()}"}""")
             }.apply {
                if (response.status() == HttpStatusCode.ServiceUnavailable || response.status() == HttpStatusCode.NotFound) {
                   Thread.sleep(1000)

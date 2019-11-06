@@ -19,8 +19,8 @@ fun Route.godkjenning(kafkaProducer: KafkaProducer<String, JsonNode>, service: B
       service.getGodkjenningsbehovForAktør(fromSpeil["aktørId"].asText()).fold(
          { err -> call.respondFeil(err.toHttpFeil()) },
          {
-            val fromStore = it.first() { it["@id"].asText() == fromSpeil["@id"].asText() } as ObjectNode
-            fromStore.put("@løsning", fromSpeil["godkjent"].asBoolean())
+            val fromStore = it.first() { it["@id"].asText() == fromSpeil["behovId"].asText() } as ObjectNode
+            fromStore.put("@løsning", "approved")
             kafkaProducer
                .send(ProducerRecord(behovTopic, fromStore["@id"].asText(), fromStore)).get(5, TimeUnit.SECONDS)
             call.respond(HttpStatusCode.Created)
