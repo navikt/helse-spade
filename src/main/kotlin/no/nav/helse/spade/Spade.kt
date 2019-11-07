@@ -117,7 +117,7 @@ fun Application.spade() {
    routing {
       authenticate {
          behov(behovService)
-         godkjenning(KafkaProducer(producerConfig()), behovService)
+         vedtak(KafkaProducer(producerConfig()), behovService)
       }
    }
 }
