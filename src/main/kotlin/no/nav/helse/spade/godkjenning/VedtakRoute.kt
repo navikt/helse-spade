@@ -20,16 +20,19 @@ fun Route.vedtak(kafkaProducer: KafkaProducer<String, JsonNode>, service: BehovS
       service.getGodkjenningsbehovForAktør(fromSpeil["aktørId"].asText()).fold(
          { err -> call.respondFeil(err.toHttpFeil()) },
          {
-            val fromStore = it.first() { it["@id"].asText() == fromSpeil["behovId"].asText() } as ObjectNode
-            val godkjentNode = defaultObjectMapper.createObjectNode()
-            godkjentNode.set("godkjent", fromSpeil["godkjent"])
-            val saksbehandlerIdent = fromSpeil.get("saksbehandlerIdent")
-            fromStore.set("@løsning", godkjentNode)
-            fromStore.set("saksbehandlerIdent", saksbehandlerIdent)
+            val behov = it.first { behov -> behov["@id"].asText() == fromSpeil["behovId"].asText() } as ObjectNode
+            val løsning = opprettLøsningForBehov(behov, fromSpeil)
             kafkaProducer
-               .send(ProducerRecord(behovTopic, fromStore["@id"].asText(), fromStore)).get(5, TimeUnit.SECONDS)
+               .send(ProducerRecord(behovTopic, løsning["@id"].asText(), løsning)).get(5, TimeUnit.SECONDS)
             call.respond(HttpStatusCode.Created)
          }
       )
    }
+}
+
+fun opprettLøsningForBehov(behov: JsonNode, fraSpeil: JsonNode) = behov.deepCopy<ObjectNode>().apply {
+   this["@løsning"] = defaultObjectMapper.createObjectNode().also { løsning ->
+      løsning["godkjent"] = fraSpeil["godkjent"]
+   }
+   this["saksbehandlerIdent"] = fraSpeil["saksbehandlerIdent"]
 }
