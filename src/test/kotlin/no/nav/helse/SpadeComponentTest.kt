@@ -265,12 +265,12 @@ class SpadeComponentTest {
             if (maxRetryCount == retryCount) {
                fail { "After $maxRetryCount tries the endpoint is still not available" }
             }
-            it.handleRequest(HttpMethod.Post, "/api/godkjenning") {
+            it.handleRequest(HttpMethod.Post, "/api/vedtak") {
                addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
                addHeader(HttpHeaders.Origin, "http://localhost")
-               setBody("""{"aktørId": "${origBehov["aktørId"].asText()}", "behovId": "${origBehov["@id"].asText()}"}""")
+               setBody("""{"aktørId": "${origBehov["aktørId"].asText()}", "behovId": "${origBehov["@id"].asText()}","godkjent": "true", "saksbehandlerIdent": "A123123"}""")
             }.apply {
                if (response.status() == HttpStatusCode.ServiceUnavailable || response.status() == HttpStatusCode.NotFound) {
                   Thread.sleep(1000)
