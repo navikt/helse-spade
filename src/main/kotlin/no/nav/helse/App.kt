@@ -6,7 +6,7 @@ import io.ktor.server.engine.applicationEngineEnvironment
 import io.ktor.server.engine.connector
 import io.ktor.server.engine.embeddedServer
 import io.ktor.server.netty.Netty
-import io.ktor.util.*
+import io.ktor.util.KtorExperimentalAPI
 import no.nav.helse.spade.spade
 import java.util.concurrent.TimeUnit
 
@@ -39,7 +39,7 @@ fun createApplicationEnvironment(env: Environment) = applicationEngineEnvironmen
 @KtorExperimentalAPI
 fun Environment.configureApplicationEnvironment(builder: ApplicationEngineEnvironmentBuilder) = builder.apply {
    with (config as MapApplicationConfig) {
-      put("kafka.app-id", "spade-v1")
+      put("kafka.app-id", "spade-v2")
       put("kafka.store-name", "sykepenger-state-store")
       put("kafka.bootstrap-servers", bootstrapServersUrl)
       serviceUsername?.let { put("service.username", it) }

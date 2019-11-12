@@ -1,27 +1,36 @@
 package no.nav.helse
 
-import com.fasterxml.jackson.core.type.*
-import com.fasterxml.jackson.databind.*
-import com.fasterxml.jackson.databind.node.*
-import com.github.tomakehurst.wiremock.*
-import com.github.tomakehurst.wiremock.client.*
-import com.github.tomakehurst.wiremock.client.WireMock.*
-import com.github.tomakehurst.wiremock.core.*
-import io.ktor.config.*
-import io.ktor.http.*
-import io.ktor.server.engine.*
+import com.fasterxml.jackson.core.type.TypeReference
+import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ObjectNode
+import com.github.tomakehurst.wiremock.WireMockServer
+import com.github.tomakehurst.wiremock.client.WireMock
+import com.github.tomakehurst.wiremock.client.WireMock.configureFor
+import com.github.tomakehurst.wiremock.client.WireMock.stubFor
+import com.github.tomakehurst.wiremock.core.WireMockConfiguration
+import io.ktor.config.MapApplicationConfig
+import io.ktor.http.ContentType
+import io.ktor.http.HttpHeaders
+import io.ktor.http.HttpMethod
+import io.ktor.http.HttpStatusCode
+import io.ktor.server.engine.ApplicationEngineEnvironmentBuilder
+import io.ktor.server.engine.connector
 import io.ktor.server.testing.*
-import io.ktor.util.*
-import no.nav.common.*
+import io.ktor.util.KtorExperimentalAPI
+import no.nav.common.JAASCredential
+import no.nav.common.KafkaEnvironment
 import no.nav.helse.kafka.Topics.behovTopic
-import no.nav.helse.serde.*
-import no.nav.helse.spade.*
-import org.apache.kafka.clients.*
-import org.apache.kafka.clients.producer.*
-import org.apache.kafka.common.config.*
+import no.nav.helse.serde.JsonNodeSerializer
+import no.nav.helse.serde.defaultObjectMapper
+import no.nav.helse.spade.spade
+import org.apache.kafka.clients.CommonClientConfigs
+import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerConfig
+import org.apache.kafka.clients.producer.ProducerRecord
+import org.apache.kafka.common.config.SaslConfigs
 import org.junit.jupiter.api.*
-import org.junit.jupiter.api.Assertions.*
-import java.io.*
+import org.junit.jupiter.api.Assertions.assertEquals
+import java.io.File
 import java.util.*
 
 class SpadeComponentTest {
@@ -270,7 +279,7 @@ class SpadeComponentTest {
                addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
                addHeader(HttpHeaders.Authorization, "Bearer $token")
                addHeader(HttpHeaders.Origin, "http://localhost")
-               setBody("""{"aktørId": "${origBehov["aktørId"].asText()}", "behovId": "${origBehov["@id"].asText()}","godkjent": "true", "saksbehandlerIdent": "A123123"}""")
+               setBody("""{"aktørId": "${origBehov["aktørId"].asText()}", "behovId": "${origBehov["@id"].asText()}","godkjent": true, "saksbehandlerIdent": "A123123"}""")
             }.apply {
                if (response.status() == HttpStatusCode.ServiceUnavailable || response.status() == HttpStatusCode.NotFound) {
                   Thread.sleep(1000)
