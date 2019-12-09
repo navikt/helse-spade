@@ -57,7 +57,7 @@ class BehovConsumer(props: Properties, private val storeName: String) {
          .withValueSerde(listValueSerde)
 
       behovStream
-         .filter { _, value -> value[behovKey].asText() == trengerGodkjenning }
+         .filter { _, value -> isNeedsApproval(value[behovKey]) }
          .filter { _, value -> value[løsningKey] == null }
          .groupBy({ _, value -> value[aktørIdKey].asText() }, Serialized.with(keySerde, valueSerde))
          .aggregate({ emptyList() }, { _, value, aggregated ->
@@ -66,6 +66,13 @@ class BehovConsumer(props: Properties, private val storeName: String) {
 
       return builder.build()
    }
+
+   private fun isNeedsApproval(behovFelt : JsonNode)  =
+      if ( behovFelt.isArray ) {
+         behovFelt.map { b -> b.asText() }.any { t -> t == trengerGodkjenning }
+      } else {
+         behovFelt.asText() == trengerGodkjenning
+      }
 
    private fun KafkaStreams.addShutdownHook() {
       setStateListener { newState, oldState ->

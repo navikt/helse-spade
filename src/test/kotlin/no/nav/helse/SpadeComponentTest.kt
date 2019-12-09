@@ -136,8 +136,8 @@ class SpadeComponentTest {
       val jwkStub = JwtStub("test issuer", server.baseUrl())
       val token = jwkStub.createTokenFor("mygroup")
 
-      produceOneMessage("12345678910")
-      produceOneMessage("12345678911")
+      produceOneMessagePrevFormat("12345678910")
+      produceOneMessagePrevFormat("12345678911")
 
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
@@ -177,8 +177,8 @@ class SpadeComponentTest {
       val token = jwkStub.createTokenFor("mygroup")
 
       val aktøren = "12345678912"
-      produceOneMessage(aktøren)
-      produceOneMessage(aktøren)
+      produceOneMessagePrevFormat(aktøren)
+      produceOneMessagePrevFormat(aktøren)
 
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
@@ -217,8 +217,8 @@ class SpadeComponentTest {
       val token = jwkStub.createTokenFor("mygroup")
 
       produceOneMessage("12345678913", "2019-11-10T00:00:00.000000")
-      produceOneMessage("12345678914", "2019-11-12T00:00:00.000000")
-      produceOneMessage("12345678915", "2019-11-13T00:00:00.000000")
+      produceOneMessagePrevFormat("12345678914", "2019-11-12T00:00:00.000000")
+      produceOneMessagePrevFormat("12345678915", "2019-11-13T00:00:00.000000")
 
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
@@ -263,7 +263,7 @@ class SpadeComponentTest {
 
       produceOneMessage("12345678916")
       val origBehov = (defaultObjectMapper.readTree(
-         File("src/test/resources/behov/behov.json").readText()) as ObjectNode).apply {
+         File("src/test/resources/behov/behovSomListe.json").readText()) as ObjectNode).apply {
          put("aktørId", "12345678916")
       }
 
@@ -293,9 +293,21 @@ class SpadeComponentTest {
       }
    }
 
-   private fun produceOneMessage(aktørId: String, timestamp: String? = null) {
+   private fun produceOneMessagePrevFormat(aktørId: String, timestamp: String? = null) {
       val message = defaultObjectMapper.readTree(
          File("src/test/resources/behov/behov.json").readText()) as ObjectNode
+      message.put("aktørId", aktørId)
+      timestamp?.let {
+         message.put("@opprettet", timestamp)
+      }
+      val producer = KafkaProducer<String, JsonNode>(producerProperties())
+      producer.send(ProducerRecord(behovTopic, message))
+      producer.flush()
+   }
+
+   private fun produceOneMessage(aktørId: String, timestamp: String? = null) {
+      val message = defaultObjectMapper.readTree(
+         File("src/test/resources/behov/behovSomListe.json").readText()) as ObjectNode
       message.put("aktørId", aktørId)
       timestamp?.let {
          message.put("@opprettet", timestamp)
