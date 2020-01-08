@@ -46,7 +46,7 @@ class SpadeComponentTest {
          autoStart = false,
          withSchemaRegistry = false,
          withSecurity = true,
-         topics = listOf(behovTopic)
+         topicNames = listOf(behovTopic)
       )
 
       @BeforeAll

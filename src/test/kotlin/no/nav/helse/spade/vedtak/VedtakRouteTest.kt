@@ -1,5 +1,6 @@
 package no.nav.helse.spade.vedtak
 
+import com.fasterxml.jackson.databind.JsonNode
 import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import no.nav.helse.serde.defaultObjectMapper
@@ -29,7 +30,7 @@ class VedtakRouteTest {
       val speilForespørsel = defaultObjectMapper.readTree("""{"sakskompleksId":"sakskompleks-uuid", "aktørId": "CHANGEME", "saksbehandlerIdent":"Z999999", "godkjent": true}""")
       assertTrue(matcherPåSakskompleksId(behov, speilForespørsel))
 
-      behov.set("@behov", JsonNodeFactory.instance.arrayNode().add("Et annet behov"))
+      behov.set<JsonNode>("@behov", JsonNodeFactory.instance.arrayNode().add("Et annet behov"))
       assertFalse(matcherPåSakskompleksId(behov, speilForespørsel))
    }
 }

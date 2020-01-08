@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val ktorVersion = "1.2.2"
 val prometheusVersion = "0.6.0"
-val kafkaVersion = "2.0.1"
+val kafkaVersion = "2.3.1"
 val fuelVersion = "2.0.1"
 val arrowVersion = "0.9.0"
 
@@ -26,7 +26,7 @@ buildscript {
 
 dependencies {
    compile(kotlin("stdlib"))
-   
+
    compile("ch.qos.logback:logback-classic:1.2.3")
    compile("net.logstash.logback:logstash-logback-encoder:5.2")
    compile("com.papertrailapp:logback-syslog4j:1.0.0")
@@ -51,7 +51,7 @@ dependencies {
    compile("io.arrow-kt:arrow-effects-data:$arrowVersion")
 
    testCompile("io.mockk:mockk:$mockkVersion")
-   testCompile ("no.nav:kafka-embedded-env:2.0.1")
+   testImplementation("no.nav:kafka-embedded-env:2.2.3")
    testCompile("org.junit.jupiter:junit-jupiter-api:$junitJupiterVersion")
    testCompile("org.junit.jupiter:junit-jupiter-params:$junitJupiterVersion")
    testCompile("org.assertj:assertj-core:$assertJVersion")

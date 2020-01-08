@@ -44,8 +44,8 @@ private fun matcherPåBehovId(behov: JsonNode, request: JsonNode) =
    behov.has("@id") && request.has("behovId") && behov["@id"].asText() == request["behovId"].asText()
 
 fun opprettLøsningForBehov(behov: JsonNode, fraSpeil: JsonNode) = behov.deepCopy<ObjectNode>().apply {
-   this["@løsning"] = defaultObjectMapper.createObjectNode().also { løsning ->
-      løsning["godkjent"] = fraSpeil["godkjent"]
-   }
-   this["saksbehandlerIdent"] = fraSpeil["saksbehandlerIdent"]
+   this.set<ObjectNode>("@løsning", defaultObjectMapper.createObjectNode().also { løsning ->
+      løsning.set<JsonNode>("godkjent", fraSpeil["godkjent"])
+   })
+   this.set<JsonNode>("saksbehandlerIdent", fraSpeil["saksbehandlerIdent"])
 }
