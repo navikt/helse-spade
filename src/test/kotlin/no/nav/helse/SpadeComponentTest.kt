@@ -275,11 +275,45 @@ class SpadeComponentTest {
                fail { "After $maxRetryCount tries the endpoint is still not available" }
             }
             it.handleRequest(HttpMethod.Post, "/api/vedtak") {
-               addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
-               addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
-               addHeader(HttpHeaders.Authorization, "Bearer $token")
-               addHeader(HttpHeaders.Origin, "http://localhost")
+               setHeaders(token)
                setBody("""{"aktørId": "${origBehov["aktørId"].asText()}", "behovId": "${origBehov["@id"].asText()}","godkjent": true, "saksbehandlerIdent": "A123123"}""")
+            }.apply {
+               if (response.status() == HttpStatusCode.ServiceUnavailable || response.status() == HttpStatusCode.NotFound) {
+                  Thread.sleep(1000)
+                  makeRequest(maxRetryCount, retryCount + 1)
+               } else {
+                  assertEquals(HttpStatusCode.Created, response.status())
+               }
+            }
+         }
+         makeRequest(20)
+      }
+   }
+
+   @Test
+   @KtorExperimentalAPI
+   fun `godkjenning av utbetaling uten behovid`() {
+      val jwkStub = JwtStub("test issuer", server.baseUrl())
+
+      stubFor(jwkStub.stubbedJwkProvider())
+      stubFor(jwkStub.stubbedConfigProvider())
+
+      produceOneMessage("12345678916")
+      val origBehov = (defaultObjectMapper.readTree(
+         File("src/test/resources/behov/behovSomListe.json").readText()) as ObjectNode).apply {
+         put("aktørId", "12345678916")
+      }
+
+      withTestKtor {
+         val token = jwkStub.createTokenFor("mygroup")
+
+         fun makeRequest(maxRetryCount: Int, retryCount: Int = 0) {
+            if (maxRetryCount == retryCount) {
+               fail { "After $maxRetryCount tries the endpoint is still not available" }
+            }
+            it.handleRequest(HttpMethod.Post, "/api/vedtak") {
+               setHeaders(token)
+               setBody("""{"aktørId": "${origBehov["aktørId"].asText()}", "sakskompleksId": "sakskompleks-uuid","godkjent": true, "saksbehandlerIdent": "A123123"}""")
             }.apply {
                if (response.status() == HttpStatusCode.ServiceUnavailable || response.status() == HttpStatusCode.NotFound) {
                   Thread.sleep(1000)
@@ -372,4 +406,10 @@ class SpadeComponentTest {
          }) { f(this) }
    }
 
+   private fun TestApplicationRequest.setHeaders(token: String) {
+      addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
+      addHeader(HttpHeaders.ContentType, ContentType.Application.Json.toString())
+      addHeader(HttpHeaders.Authorization, "Bearer $token")
+      addHeader(HttpHeaders.Origin, "http://localhost")
+   }
 }

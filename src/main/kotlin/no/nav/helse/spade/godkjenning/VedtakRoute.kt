@@ -1,6 +1,7 @@
 package no.nav.helse.spade.godkjenning
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.ArrayNode
 import com.fasterxml.jackson.databind.node.ObjectNode
 import io.ktor.application.call
 import io.ktor.http.HttpStatusCode
@@ -19,16 +20,14 @@ import java.util.concurrent.TimeUnit
 
 fun Route.vedtak(kafkaProducer: KafkaProducer<String, JsonNode>, service: BehovService) {
    post("api/vedtak") {
-      val fromSpeil = call.receive<JsonNode>()
-      service.getGodkjenningsbehovForAktør(fromSpeil["aktørId"].asText()).fold(
+      val request = call.receive<JsonNode>()
+      service.getGodkjenningsbehovForAktør(request["aktørId"].asText()).fold(
          { err -> call.respondFeil(err.toHttpFeil()) },
          {
-            val behov = it.filter { behov ->
-               behov.has("@id")
-            }.filter { behov ->
-               behov["@id"].asText() == fromSpeil["behovId"].asText()
-            }.first() as ObjectNode
-            val løsning = opprettLøsningForBehov(behov, fromSpeil)
+            val behov = it.first { behov ->
+               matcherPåBehovId(behov, request) || matcherPåSakskompleksId(behov, request)
+            } as ObjectNode
+            val løsning = opprettLøsningForBehov(behov, request)
             kafkaProducer
                .send(ProducerRecord(behovTopic, løsning["@id"].asText(), løsning)).get(5, TimeUnit.SECONDS)
             call.respond(HttpStatusCode.Created)
@@ -36,6 +35,13 @@ fun Route.vedtak(kafkaProducer: KafkaProducer<String, JsonNode>, service: BehovS
       )
    }
 }
+
+internal fun matcherPåSakskompleksId(behov: JsonNode, request: JsonNode) =
+   behov.has("sakskompleksId") && request.has("sakskompleksId") && behov["sakskompleksId"].asText() == request["sakskompleksId"].asText()
+      && (behov["@behov"] as ArrayNode).map { it.asText() }.contains("GodkjenningFraSaksbehandler")
+
+private fun matcherPåBehovId(behov: JsonNode, request: JsonNode) =
+   behov.has("@id") && request.has("behovId") && behov["@id"].asText() == request["behovId"].asText()
 
 fun opprettLøsningForBehov(behov: JsonNode, fraSpeil: JsonNode) = behov.deepCopy<ObjectNode>().apply {
    this["@løsning"] = defaultObjectMapper.createObjectNode().also { løsning ->
