@@ -25,7 +25,7 @@ fun Route.vedtak(kafkaProducer: KafkaProducer<String, JsonNode>, service: BehovS
          { err -> call.respondFeil(err.toHttpFeil()) },
          {
             val behov = it.first { behov ->
-               matcherPåBehovId(behov, request) || matcherPåSakskompleksId(behov, request)
+               matcherPåBehovId(behov, request) || matcherPåVedtaksperiodeId(behov, request)
             } as ObjectNode
             val løsning = opprettLøsningForBehov(behov, request)
             kafkaProducer
@@ -36,8 +36,8 @@ fun Route.vedtak(kafkaProducer: KafkaProducer<String, JsonNode>, service: BehovS
    }
 }
 
-internal fun matcherPåSakskompleksId(behov: JsonNode, request: JsonNode) =
-   behov.has("sakskompleksId") && request.has("sakskompleksId") && behov["sakskompleksId"].asText() == request["sakskompleksId"].asText()
+internal fun matcherPåVedtaksperiodeId(behov: JsonNode, request: JsonNode) =
+   behov.has("vedtaksperiodeId") && request.has("vedtaksperiodeId") && behov["vedtaksperiodeId"].asText() == request["vedtaksperiodeId"].asText()
       && (behov["@behov"] as ArrayNode).map { it.asText() }.contains("GodkjenningFraSaksbehandler")
 
 private fun matcherPåBehovId(behov: JsonNode, request: JsonNode) =

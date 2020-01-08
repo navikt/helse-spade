@@ -310,7 +310,7 @@ class SpadeComponentTest {
             }
             it.handleRequest(HttpMethod.Post, "/api/vedtak") {
                setHeaders(token)
-               setBody("""{"aktørId": "${origBehov["aktørId"].asText()}", "sakskompleksId": "sakskompleks-uuid","godkjent": true, "saksbehandlerIdent": "A123123"}""")
+               setBody("""{"aktørId": "${origBehov["aktørId"].asText()}", "vedtaksperiodeId": "vedtaksperiode-uuid","godkjent": true, "saksbehandlerIdent": "A123123"}""")
             }.apply {
                if (response.status() == HttpStatusCode.ServiceUnavailable || response.status() == HttpStatusCode.NotFound) {
                   Thread.sleep(1000)
