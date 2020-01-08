@@ -2,7 +2,7 @@ import org.jetbrains.kotlin.gradle.tasks.KotlinCompile
 
 val ktorVersion = "1.2.2"
 val prometheusVersion = "0.6.0"
-val kafkaVersion = "2.0.1"
+val kafkaVersion = "2.3.0"
 val fuelVersion = "2.0.1"
 val arrowVersion = "0.9.0"
 
@@ -26,7 +26,7 @@ buildscript {
 
 dependencies {
    compile(kotlin("stdlib"))
-   
+
    compile("ch.qos.logback:logback-classic:1.2.3")
    compile("net.logstash.logback:logstash-logback-encoder:5.2")
    compile("com.papertrailapp:logback-syslog4j:1.0.0")
@@ -51,11 +51,12 @@ dependencies {
    compile("io.arrow-kt:arrow-effects-data:$arrowVersion")
 
    testCompile("io.mockk:mockk:$mockkVersion")
-   testCompile ("no.nav:kafka-embedded-env:2.0.1")
+   testCompile ("no.nav:kafka-embedded-env:2.3.0")
    testCompile("org.junit.jupiter:junit-jupiter-api:$junitJupiterVersion")
    testCompile("org.junit.jupiter:junit-jupiter-params:$junitJupiterVersion")
    testCompile("org.assertj:assertj-core:$assertJVersion")
    testCompile("org.wso2.orbit.com.nimbusds:nimbus-jose-jwt:$nimbusVersion")
+   testCompile("org.awaitility:awaitility:3.1.6")
 
    testCompile("com.github.tomakehurst:wiremock:$wireMockVersion") {
       exclude(group = "junit")

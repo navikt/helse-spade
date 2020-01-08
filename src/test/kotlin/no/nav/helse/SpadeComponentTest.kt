@@ -28,10 +28,12 @@ import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.apache.kafka.common.config.SaslConfigs
+import org.awaitility.Awaitility.await
 import org.junit.jupiter.api.*
 import org.junit.jupiter.api.Assertions.assertEquals
 import java.io.File
 import java.util.*
+import java.util.concurrent.TimeUnit
 
 class SpadeComponentTest {
 
@@ -41,12 +43,13 @@ class SpadeComponentTest {
 
       val server: WireMockServer = WireMockServer(WireMockConfiguration.options().dynamicPort())
 
+
       private val embeddedEnvironment = KafkaEnvironment(
          users = listOf(JAASCredential(username, password)),
          autoStart = false,
          withSchemaRegistry = false,
          withSecurity = true,
-         topics = listOf(behovTopic)
+         topicNames = listOf(behovTopic)
       )
 
       @BeforeAll
@@ -62,7 +65,10 @@ class SpadeComponentTest {
       fun stop() {
          server.stop()
 
-         try { File("/tmp/kafka-streams/").deleteRecursively() } catch(e: Exception) { /* you'll have to delete the materialized kstream yourself. */}
+         try {
+            File("/tmp/kafka-streams/").deleteRecursively()
+         } catch (e: Exception) { /* you'll have to delete the materialized kstream yourself. */
+         }
 
          embeddedEnvironment.tearDown()
       }
@@ -144,29 +150,20 @@ class SpadeComponentTest {
 
       withTestKtor {
 
-         fun makeRequest(maxRetryCount: Int, retryCount: Int = 0) {
-            if (maxRetryCount == retryCount) {
-               fail { "After $maxRetryCount tries the endpoint is still not available" }
-            }
-
-            it.handleRequest(HttpMethod.Get, "/api/behov/12345678910") {
-               addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
-               addHeader(HttpHeaders.Authorization, "Bearer $token")
-               addHeader(HttpHeaders.Origin, "http://localhost")
-            }.apply {
-               if (response.status() == HttpStatusCode.ServiceUnavailable) {
-                  Thread.sleep(1000)
-                  makeRequest(maxRetryCount, retryCount + 1)
-               } else {
+         await("Vent på behov")
+            .atMost(20, TimeUnit.SECONDS)
+            .untilAsserted {
+               it.handleRequest(HttpMethod.Get, "/api/behov/12345678910") {
+                  addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
+                  addHeader(HttpHeaders.Authorization, "Bearer $token")
+                  addHeader(HttpHeaders.Origin, "http://localhost")
+               }.apply {
                   assertEquals(HttpStatusCode.OK, response.status())
                   val reader = defaultObjectMapper.readerFor(object : TypeReference<List<JsonNode>>() {})
                   val behovliste: List<JsonNode> = reader.readValue(response.content)
                   assertEquals(1, behovliste.size)
                }
             }
-         }
-
-         makeRequest(20)
       }
    }
 
@@ -368,7 +365,7 @@ class SpadeComponentTest {
 
    @KtorExperimentalAPI
    private fun fakeConfig(envBuilder: ApplicationEngineEnvironmentBuilder) =
-      with (envBuilder.config as MapApplicationConfig) {
+      with(envBuilder.config as MapApplicationConfig) {
          put("oidcConfigUrl", server.baseUrl() + "/config")
          put("issuer", "test issuer")
          put("clientId", "el_cliento")
