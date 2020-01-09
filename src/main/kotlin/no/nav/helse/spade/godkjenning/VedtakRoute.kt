@@ -1,6 +1,7 @@
 package no.nav.helse.spade.godkjenning
 
 import com.fasterxml.jackson.databind.JsonNode
+import com.fasterxml.jackson.databind.node.JsonNodeFactory
 import com.fasterxml.jackson.databind.node.ObjectNode
 import io.ktor.application.call
 import io.ktor.http.HttpStatusCode
@@ -10,7 +11,6 @@ import io.ktor.routing.Route
 import io.ktor.routing.post
 import no.nav.helse.kafka.Topics.behovTopic
 import no.nav.helse.respondFeil
-import no.nav.helse.serde.defaultObjectMapper
 import no.nav.helse.spade.behov.BehovService
 import no.nav.helse.toHttpFeil
 import org.apache.kafka.clients.producer.KafkaProducer
@@ -29,7 +29,8 @@ fun Route.vedtak(kafkaProducer: KafkaProducer<String, JsonNode>, service: BehovS
          { err -> call.respondFeil(err.toHttpFeil()) },
          {
             val behov = it.senesteSomMatcher(request)
-            val løsning = opprettLøsningForBehov(behov, request)
+            val løsning = løstBehov(behov, request)
+
             kafkaProducer
                .send(ProducerRecord(behovTopic, løsning["@id"].asText(), løsning)).get(5, TimeUnit.SECONDS)
             call.respond(HttpStatusCode.Created)
@@ -38,20 +39,25 @@ fun Route.vedtak(kafkaProducer: KafkaProducer<String, JsonNode>, service: BehovS
    }
 }
 
+internal fun løstBehov(behov: JsonNode, request: JsonNode) =
+    (behov.deepCopy() as ObjectNode)
+      .also { node -> node.set<JsonNode>("@løsning", JsonNodeFactory.instance.objectNode().set<JsonNode>(behovNavn, opprettLøsningForBehov(request))) }
+      .also { node -> node.set<JsonNode>("saksbehandlerIdent", request["saksbehandlerIdent"]) }
+
+
+internal const val behovNavn = "GodkjenningFraSaksbehandler"
+
 internal fun List<JsonNode>.senesteSomMatcher(request: JsonNode) =
    this.sortedBy { LocalDateTime.parse(it.get("@opprettet").asText()) }
       .last { behov -> matcherPåBehovId(behov, request) || matcherPåVedtaksperiodeId(behov, request) }
 
 internal fun matcherPåVedtaksperiodeId(behov: JsonNode, request: JsonNode) =
    behov.has("vedtaksperiodeId") && behov["vedtaksperiodeId"] == request["vedtaksperiodeId"]
-      && behov["@behov"].any { it.asText() == "GodkjenningFraSaksbehandler" }
+      && behov["@behov"].any { it.asText() == behovNavn }
 
 private fun matcherPåBehovId(behov: JsonNode, request: JsonNode) =
    behov.has("@id") && request.has("behovId") && behov["@id"].asText() == request["behovId"].asText()
 
-fun opprettLøsningForBehov(behov: JsonNode, fraSpeil: JsonNode) = behov.deepCopy<ObjectNode>().apply {
-   this.set<JsonNode>("@løsning", defaultObjectMapper.createObjectNode().also { løsning ->
-      løsning.set<JsonNode>("godkjent", fraSpeil["godkjent"])
-   })
-   this.set<JsonNode>("saksbehandlerIdent", fraSpeil["saksbehandlerIdent"])
-}
+internal fun opprettLøsningForBehov(fraSpeil: JsonNode) =
+   JsonNodeFactory.instance.objectNode().set<JsonNode>("godkjent", fraSpeil["godkjent"])
+
