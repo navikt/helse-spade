@@ -30,7 +30,12 @@ fun Route.vedtak(kafkaProducer: KafkaProducer<String, JsonNode>, service: BehovS
             val behov = it.first { behov ->
                matcherPåBehovId(behov, request) || matcherPåVedtaksperiodeId(behov, request)
                   .also { match ->
-                     log.info("matcher på vedtakdsperiodeId:${match}")
+                     log.info("matcher på vedtaksperiodeId:${match}")
+                     when {
+                        request.has("vedtaksperiodeId") -> log.info("request.vedtaksperiodeId: ${request.get("vedtaksperiodeId").textValue()}")
+                        behov.has("@behov") -> behov.get("@behov").map { type -> log.info("behov.behov: ${type.textValue()}")}
+                        behov.has("vedtaksperiodeId") -> log.info("behov.vedtaksperiodeId: ${behov.get("vedtaksperiodeId").textValue()}")
+                     }
                   }
             } as ObjectNode
             val løsning = opprettLøsningForBehov(behov, request)
