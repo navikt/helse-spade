@@ -31,6 +31,7 @@ fun Route.vedtak(kafkaProducer: KafkaProducer<String, JsonNode>, service: BehovS
                matcherPåBehovId(behov, request) || matcherPåVedtaksperiodeId(behov, request)
                   .also { match ->
                      log.info("matcher på vedtaksperiodeId:${match}")
+                     log.info("Behov: ${behov.asText()}")
                      when {
                         request.has("vedtaksperiodeId") -> log.info("request.vedtaksperiodeId: ${request.get("vedtaksperiodeId").textValue()}")
                         behov.has("@behov") -> behov.get("@behov").map { type -> log.info("behov.behov: ${type.textValue()}")}
