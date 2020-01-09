@@ -16,25 +16,19 @@ import no.nav.helse.toHttpFeil
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
 import org.slf4j.LoggerFactory
+import java.time.LocalDateTime
 import java.util.concurrent.TimeUnit
-
 
 
 fun Route.vedtak(kafkaProducer: KafkaProducer<String, JsonNode>, service: BehovService) {
    val log = LoggerFactory.getLogger("Route.vedtak")
    post("api/vedtak") {
       val request = call.receive<JsonNode>()
-      log.info("Request: ${request.toPrettyString()}")
+      log.info("Fatter vedtak med vedtaksperiodeId: ${request.get("vedtaksperiodeId").asText()}")
       service.getGodkjenningsbehovForAktør(request["aktørId"].asText()).fold(
          { err -> call.respondFeil(err.toHttpFeil()) },
          {
-            val behov = it.first { behov ->
-               matcherPåBehovId(behov, request) || matcherPåVedtaksperiodeId(behov, request)
-                  .also { match ->
-                     log.info("matcher på vedtaksperiodeId:${match}")
-                     log.info("Behov: ${behov.toPrettyString()}")
-                  }
-            } as ObjectNode
+            val behov = it.senesteSomMatcher(request)
             val løsning = opprettLøsningForBehov(behov, request)
             kafkaProducer
                .send(ProducerRecord(behovTopic, løsning["@id"].asText(), løsning)).get(5, TimeUnit.SECONDS)
@@ -44,8 +38,12 @@ fun Route.vedtak(kafkaProducer: KafkaProducer<String, JsonNode>, service: BehovS
    }
 }
 
+internal fun List<JsonNode>.senesteSomMatcher(request: JsonNode) =
+   this.sortedBy { LocalDateTime.parse(it.get("@opprettet").asText()) }
+      .last { behov -> matcherPåBehovId(behov, request) || matcherPåVedtaksperiodeId(behov, request) }
+
 internal fun matcherPåVedtaksperiodeId(behov: JsonNode, request: JsonNode) =
-   behov.has("vedtaksperiodeId") && request.has("vedtaksperiodeId") && behov["vedtaksperiodeId"] == request["vedtaksperiodeId"]
+   behov.has("vedtaksperiodeId") && behov["vedtaksperiodeId"] == request["vedtaksperiodeId"]
       && behov["@behov"].any { it.asText() == "GodkjenningFraSaksbehandler" }
 
 private fun matcherPåBehovId(behov: JsonNode, request: JsonNode) =

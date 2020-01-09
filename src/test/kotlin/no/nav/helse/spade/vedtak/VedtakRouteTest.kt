@@ -6,6 +6,7 @@ import com.fasterxml.jackson.databind.node.ObjectNode
 import no.nav.helse.serde.defaultObjectMapper
 import no.nav.helse.spade.godkjenning.matcherPåVedtaksperiodeId
 import no.nav.helse.spade.godkjenning.opprettLøsningForBehov
+import no.nav.helse.spade.godkjenning.senesteSomMatcher
 import org.junit.jupiter.api.Assertions.*
 import org.junit.jupiter.api.Test
 
@@ -32,5 +33,16 @@ class VedtakRouteTest {
       println("Behov: ${behov.toPrettyString()}")
       behov.set<JsonNode>("@behov", JsonNodeFactory.instance.arrayNode().add("Et annet behov"))
       assertFalse(matcherPåVedtaksperiodeId(behov, speilForespørsel))
+   }
+
+   @Test
+   fun `besvarer siste behov`() {
+      val førsteBehov = defaultObjectMapper.readTree(VedtakRouteTest::class.java.getResourceAsStream("/behov/behovSomListe.json")) as ObjectNode
+      val andreBehov = førsteBehov.deepCopy().put("@opprettet", "2019-11-02T08:38:00.728127")
+      val sisteBehov = førsteBehov.deepCopy().put("@opprettet", "2019-11-03T08:38:00.728127")
+      val behovListe = listOf(andreBehov, sisteBehov, førsteBehov)
+      val speilForespørsel = defaultObjectMapper.readTree("""{"vedtaksperiodeId":"vedtaksperiode-uuid", "aktørId": "CHANGEME", "saksbehandlerIdent":"Z999999", "godkjent": true}""")
+
+      assertEquals(sisteBehov, behovListe.senesteSomMatcher(speilForespørsel))
    }
 }

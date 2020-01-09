@@ -57,6 +57,7 @@ class BehovConsumer(props: Properties, private val storeName: String) {
          .withValueSerde(listValueSerde)
 
       behovStream
+         //TODO: Filtrere ut behov som matcher et behov med løsning
          .filter { _, value -> isNeedsApproval(value[behovKey]) }
          .filter { _, value -> value[løsningKey] == null }
          .groupBy({ _, value -> value[aktørIdKey].asText() }, Serialized.with(keySerde, valueSerde))
