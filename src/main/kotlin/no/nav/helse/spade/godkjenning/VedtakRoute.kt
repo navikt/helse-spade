@@ -24,6 +24,7 @@ fun Route.vedtak(kafkaProducer: KafkaProducer<String, JsonNode>, service: BehovS
    val log = LoggerFactory.getLogger("Route.vedtak")
    post("api/vedtak") {
       val request = call.receive<JsonNode>()
+      log.info("Request: ${request.toPrettyString()}")
       service.getGodkjenningsbehovForAktør(request["aktørId"].asText()).fold(
          { err -> call.respondFeil(err.toHttpFeil()) },
          {
@@ -31,12 +32,7 @@ fun Route.vedtak(kafkaProducer: KafkaProducer<String, JsonNode>, service: BehovS
                matcherPåBehovId(behov, request) || matcherPåVedtaksperiodeId(behov, request)
                   .also { match ->
                      log.info("matcher på vedtaksperiodeId:${match}")
-                     log.info("Behov: ${behov.asText()}")
-                     when {
-                        request.has("vedtaksperiodeId") -> log.info("request.vedtaksperiodeId: ${request.get("vedtaksperiodeId").textValue()}")
-                        behov.has("@behov") -> behov.get("@behov").map { type -> log.info("behov.behov: ${type.textValue()}")}
-                        behov.has("vedtaksperiodeId") -> log.info("behov.vedtaksperiodeId: ${behov.get("vedtaksperiodeId").textValue()}")
-                     }
+                     log.info("Behov: ${behov.toPrettyString()}")
                   }
             } as ObjectNode
             val løsning = opprettLøsningForBehov(behov, request)
@@ -56,8 +52,8 @@ private fun matcherPåBehovId(behov: JsonNode, request: JsonNode) =
    behov.has("@id") && request.has("behovId") && behov["@id"].asText() == request["behovId"].asText()
 
 fun opprettLøsningForBehov(behov: JsonNode, fraSpeil: JsonNode) = behov.deepCopy<ObjectNode>().apply {
-   this["@løsning"] = defaultObjectMapper.createObjectNode().also { løsning ->
-      løsning["godkjent"] = fraSpeil["godkjent"]
-   }
-   this["saksbehandlerIdent"] = fraSpeil["saksbehandlerIdent"]
+   this.set<JsonNode>("@løsning", defaultObjectMapper.createObjectNode().also { løsning ->
+      løsning.set<JsonNode>("godkjent", fraSpeil["godkjent"])
+   })
+   this.set<JsonNode>("saksbehandlerIdent", fraSpeil["saksbehandlerIdent"])
 }

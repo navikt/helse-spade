@@ -29,7 +29,7 @@ class VedtakRouteTest {
       val behov = defaultObjectMapper.readTree(VedtakRouteTest::class.java.getResourceAsStream("/behov/behovSomListe.json")) as ObjectNode
       val speilForespørsel = defaultObjectMapper.readTree("""{"vedtaksperiodeId":"vedtaksperiode-uuid", "aktørId": "CHANGEME", "saksbehandlerIdent":"Z999999", "godkjent": true}""")
       assertTrue(matcherPåVedtaksperiodeId(behov, speilForespørsel))
-
+      println("Behov: ${behov.toPrettyString()}")
       behov.set<JsonNode>("@behov", JsonNodeFactory.instance.arrayNode().add("Et annet behov"))
       assertFalse(matcherPåVedtaksperiodeId(behov, speilForespørsel))
    }
