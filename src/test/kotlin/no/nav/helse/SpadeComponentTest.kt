@@ -19,10 +19,9 @@ import io.ktor.server.testing.*
 import io.ktor.util.KtorExperimentalAPI
 import no.nav.common.JAASCredential
 import no.nav.common.KafkaEnvironment
-import no.nav.helse.kafka.Topics.behovTopic
+import no.nav.helse.kafka.Topics.rapidTopic
 import no.nav.helse.serde.JsonNodeSerializer
 import no.nav.helse.serde.defaultObjectMapper
-import no.nav.helse.spade.spade
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
@@ -49,7 +48,7 @@ class SpadeComponentTest {
          autoStart = false,
          withSchemaRegistry = false,
          withSecurity = true,
-         topicNames = listOf(behovTopic)
+         topicNames = listOf(rapidTopic)
       )
 
       @BeforeAll
@@ -332,7 +331,7 @@ class SpadeComponentTest {
          message.put("@opprettet", timestamp)
       }
       val producer = KafkaProducer<String, JsonNode>(producerProperties())
-      producer.send(ProducerRecord(behovTopic, message))
+      producer.send(ProducerRecord(rapidTopic, message))
       producer.flush()
    }
 
@@ -344,7 +343,7 @@ class SpadeComponentTest {
          message.put("@opprettet", timestamp)
       }
       val producer = KafkaProducer<String, JsonNode>(producerProperties())
-      producer.send(ProducerRecord(behovTopic, message))
+      producer.send(ProducerRecord(rapidTopic, message))
       producer.flush()
    }
 

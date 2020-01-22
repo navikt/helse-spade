@@ -49,7 +49,7 @@ class BehovConsumer(props: Properties, private val storeName: String) {
       val valueSerde = Serdes.serdeFrom(JsonNodeSerializer(), JsonNodeDeserializer())
       val listValueSerde = Serdes.serdeFrom(ListSerializer(JsonNodeSerializer()), ListDeserializer(JsonNodeDeserializer()))
 
-      val behovStream = builder.stream<String, JsonNode>(Topics.behovTopic, Consumed.with(keySerde, valueSerde)
+      val behovStream = builder.stream<String, JsonNode>(Topics.rapidTopic, Consumed.with(keySerde, valueSerde)
          .withOffsetResetPolicy(Topology.AutoOffsetReset.EARLIEST))
 
       val materialized = Materialized.`as`<String, List<JsonNode>, KeyValueStore<Bytes, ByteArray>>(storeName)
