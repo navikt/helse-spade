@@ -9,10 +9,15 @@ import io.ktor.request.receive
 import io.ktor.response.respond
 import io.ktor.routing.Route
 import io.ktor.routing.post
+import no.nav.helse.kafka.Topics.rapidTopic
+import no.nav.helse.respondFeil
 import no.nav.helse.spade.behov.BehovService
+import no.nav.helse.toHttpFeil
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerRecord
+import org.slf4j.LoggerFactory
 import java.time.LocalDateTime
+import java.util.concurrent.TimeUnit
 
 
 fun Route.vedtak(kafkaProducer: KafkaProducer<String, JsonNode>, service: BehovService) {
@@ -27,7 +32,7 @@ fun Route.vedtak(kafkaProducer: KafkaProducer<String, JsonNode>, service: BehovS
             val løsning = løstBehov(behov, request)
 
             kafkaProducer
-               .send(ProducerRecord(behovTopic, løsning["@id"].asText(), løsning)).get(5, TimeUnit.SECONDS)
+               .send(ProducerRecord(rapidTopic, løsning["@id"].asText(), løsning)).get(5, TimeUnit.SECONDS)
             call.respond(HttpStatusCode.Created)
          }
       )

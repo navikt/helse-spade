@@ -22,6 +22,7 @@ import no.nav.common.KafkaEnvironment
 import no.nav.helse.kafka.Topics.rapidTopic
 import no.nav.helse.serde.JsonNodeSerializer
 import no.nav.helse.serde.defaultObjectMapper
+import no.nav.helse.spade.spade
 import org.apache.kafka.clients.CommonClientConfigs
 import org.apache.kafka.clients.producer.KafkaProducer
 import org.apache.kafka.clients.producer.ProducerConfig
