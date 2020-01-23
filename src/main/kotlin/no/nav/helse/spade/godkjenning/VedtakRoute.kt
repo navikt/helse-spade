@@ -32,7 +32,7 @@ fun Route.vedtak(kafkaProducer: KafkaProducer<String, JsonNode>, service: BehovS
             val løsning = løstBehov(behov, request)
 
             kafkaProducer
-               .send(ProducerRecord(rapidTopic, løsning["@id"].asText(), løsning)).get(5, TimeUnit.SECONDS)
+               .send(ProducerRecord(rapidTopic, løsning["fødselsnummer"].asText(), løsning)).get(5, TimeUnit.SECONDS)
             call.respond(HttpStatusCode.Created)
          }
       )
