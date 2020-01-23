@@ -39,7 +39,7 @@ fun createApplicationEnvironment(env: Environment) = applicationEngineEnvironmen
 @KtorExperimentalAPI
 fun Environment.configureApplicationEnvironment(builder: ApplicationEngineEnvironmentBuilder) = builder.apply {
    with (config as MapApplicationConfig) {
-      put("kafka.app-id", "spade-v2")
+      put("kafka.app-id", "spade-v3")
       put("kafka.store-name", "sykepenger-state-store-v2")
       put("kafka.bootstrap-servers", bootstrapServersUrl)
       serviceUsername?.let { put("service.username", it) }
