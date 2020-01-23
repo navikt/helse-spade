@@ -1,34 +1,40 @@
 package no.nav.helse.spade
 
-import com.auth0.jwk.*
-import com.fasterxml.jackson.databind.*
-import com.fasterxml.jackson.datatype.jsr310.*
+import com.auth0.jwk.JwkProviderBuilder
+import com.fasterxml.jackson.databind.SerializationFeature
+import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import io.ktor.application.*
-import io.ktor.auth.*
-import io.ktor.auth.jwt.*
+import io.ktor.auth.Authentication
+import io.ktor.auth.authenticate
+import io.ktor.auth.jwt.JWTPrincipal
+import io.ktor.auth.jwt.jwt
+import io.ktor.auth.principal
 import io.ktor.features.*
-import io.ktor.jackson.*
-import io.ktor.request.*
-import io.ktor.routing.*
-import io.ktor.util.*
-import no.nav.helse.http.*
-import no.nav.helse.nais.*
-import no.nav.helse.serde.*
+import io.ktor.jackson.jackson
+import io.ktor.request.path
+import io.ktor.request.uri
+import io.ktor.routing.routing
+import io.ktor.util.KtorExperimentalAPI
+import no.nav.helse.http.getJson
+import no.nav.helse.nais.nais
+import no.nav.helse.serde.JsonNodeSerializer
 import no.nav.helse.spade.behov.BehovConsumer
 import no.nav.helse.spade.behov.BehovService
 import no.nav.helse.spade.behov.KafkaBehovRepository
 import no.nav.helse.spade.behov.behov
-import no.nav.helse.spade.godkjenning.*
-import org.apache.kafka.clients.*
-import org.apache.kafka.clients.producer.*
-import org.apache.kafka.common.config.*
-import org.apache.kafka.common.serialization.*
-import org.apache.kafka.streams.*
-import org.apache.kafka.streams.errors.*
-import org.slf4j.*
-import org.slf4j.event.*
-import java.io.*
-import java.net.*
+import no.nav.helse.spade.godkjenning.vedtak
+import org.apache.kafka.clients.CommonClientConfigs
+import org.apache.kafka.clients.producer.KafkaProducer
+import org.apache.kafka.clients.producer.ProducerConfig
+import org.apache.kafka.common.config.SaslConfigs
+import org.apache.kafka.common.config.SslConfigs
+import org.apache.kafka.common.serialization.StringSerializer
+import org.apache.kafka.streams.StreamsConfig
+import org.apache.kafka.streams.errors.LogAndFailExceptionHandler
+import org.slf4j.LoggerFactory
+import org.slf4j.event.Level
+import java.io.File
+import java.net.URL
 import java.util.*
 
 private val auditLog = LoggerFactory.getLogger("auditLogger")
@@ -145,7 +151,6 @@ private fun Application.producerConfig() = Properties().apply {
    put(ProducerConfig.MAX_IN_FLIGHT_REQUESTS_PER_CONNECTION, "1")
    put(ProducerConfig.LINGER_MS_CONFIG, "0")
    put(ProducerConfig.RETRIES_CONFIG, "0")
-   put(ProducerConfig.CLIENT_ID_CONFIG, environment.config.property("kafka.app-id").getString())
    put(SaslConfigs.SASL_MECHANISM, "PLAIN")
 
    putAll(commonProps())
