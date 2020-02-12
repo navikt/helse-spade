@@ -1,5 +1,5 @@
 package no.nav.helse.kafka
 
 object Topics {
-   const val rapidTopic = "privat-helse-sykepenger-rapid-v1"
+   const val rapidTopic = "helse-rapid-v1"
 }
