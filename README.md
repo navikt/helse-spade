@@ -1,7 +1,7 @@
 Spade
 =====
 
-Graver frem sykepengesaker som skal manuelt behandles av en saksbehandler.
+Graver frem sykepengesaker som skal behandles av en saksbehandler.
 
 # Henvendelser
 
