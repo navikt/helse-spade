@@ -20,7 +20,6 @@ import org.slf4j.LoggerFactory
 import java.util.*
 
 class BehovConsumer(props: Properties, private val storeName: String) {
-
    private val consumer = KafkaStreams(topology(storeName), props)
 
    init {
@@ -39,7 +38,7 @@ class BehovConsumer(props: Properties, private val storeName: String) {
       const val aktørIdKey = "aktørId"
       const val løsningKey = "@løsning"
       const val behovKey = "@behov"
-      const val trengerGodkjenning = "GodkjenningFraSaksbehandler"
+      const val behovNavn = "Godkjenning"
    }
 
    fun topology(storeName: String): Topology {
@@ -71,11 +70,7 @@ class BehovConsumer(props: Properties, private val storeName: String) {
    }
 
    private fun isNeedsApproval(behovFelt : JsonNode)  =
-      if ( behovFelt.isArray ) {
-         behovFelt.map { b -> b.asText() }.any { t -> t == trengerGodkjenning }
-      } else {
-         behovFelt.asText() == trengerGodkjenning
-      }
+      behovFelt.map { b -> b.asText() }.any { t -> t == behovNavn }
 
    private fun KafkaStreams.addShutdownHook() {
       setStateListener { newState, oldState ->
