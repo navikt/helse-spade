@@ -16,7 +16,7 @@ suspend fun <B: Any> Either<Feilårsak, B>.respond(call: ApplicationCall) = this
 )
 
 fun Feilårsak.toHttpFeil() = when (this) {
-   is Feilårsak.IkkeFunnet -> HttpFeil(HttpStatusCode.NotFound, "Resource not found")
-   is Feilårsak.MidlertidigUtilgjengelig -> HttpFeil(HttpStatusCode.ServiceUnavailable, "Service is unavailable at the momement")
-   is Feilårsak.UkjentFeil -> HttpFeil(HttpStatusCode.InternalServerError, "Unknown error")
+   Feilårsak.MidlertidigUtilgjengelig -> HttpFeil(HttpStatusCode.ServiceUnavailable, "Service is unavailable at the momement")
+   Feilårsak.UkjentFeil -> HttpFeil(HttpStatusCode.InternalServerError, "Unknown error")
+   Feilårsak.IkkeFunnet -> HttpFeil(HttpStatusCode.NotFound, "Resource not found")
 }

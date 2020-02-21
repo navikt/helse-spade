@@ -36,14 +36,8 @@ class KafkaBehovRepository(stream: BehovConsumer) {
    fun getBehovForPeriode(fom: String, tom: String): Either<Feilårsak, List<JsonNode>> = try {
       stateStore.all().use { iterator ->
          iterator.asSequence().flatMap { it.value.asSequence() }.filter { node ->
-            isDateInPeriod(node, fom, tom)
-         }.toList().let {
-            if (it.isEmpty()) {
-               Feilårsak.IkkeFunnet.left()
-            } else {
-               it.right()
-            }
-         }
+         isDateInPeriod(node, fom, tom)
+      }.toList().right()
       }
    } catch (err: InvalidStateStoreException) {
       log.info("state store is not available yet", err)
