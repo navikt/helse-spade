@@ -11,6 +11,7 @@ import io.ktor.routing.Route
 import io.ktor.routing.post
 import no.nav.helse.kafka.Topics.rapidTopic
 import no.nav.helse.respondFeil
+import no.nav.helse.serde.defaultObjectMapper
 import no.nav.helse.spade.behov.BehovConsumer.Companion.behovNavn
 import no.nav.helse.spade.behov.BehovService
 import no.nav.helse.toHttpFeil
@@ -41,9 +42,15 @@ fun Route.vedtak(kafkaProducer: KafkaProducer<String, JsonNode>, service: BehovS
 }
 
 internal fun løstBehov(behov: JsonNode, request: JsonNode) =
-    (behov.deepCopy() as ObjectNode)
-      .also { node -> node.set<JsonNode>("@løsning", JsonNodeFactory.instance.objectNode().set<JsonNode>(behovNavn, opprettLøsningForBehov(request))) }
+   (behov.deepCopy() as ObjectNode)
+      .also { node ->
+         node.set<JsonNode>(
+            "@løsning",
+            JsonNodeFactory.instance.objectNode().set<JsonNode>(behovNavn, opprettLøsningForBehov(request))
+         )
+      }
       .also { node -> node.set<JsonNode>("saksbehandlerIdent", request["saksbehandlerIdent"]) }
+      .also { node -> node.set<JsonNode>("godkjenttidspunkt", defaultObjectMapper.valueToTree(LocalDateTime.now())) }
 
 internal fun List<JsonNode>.senesteSomMatcher(request: JsonNode) =
    this.sortedBy { LocalDateTime.parse(it.get("@opprettet").asText()) }
