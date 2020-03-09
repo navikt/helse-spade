@@ -43,7 +43,6 @@ class SpadeComponentTest {
 
       val server: WireMockServer = WireMockServer(WireMockConfiguration.options().dynamicPort())
 
-
       private val embeddedEnvironment = KafkaEnvironment(
          users = listOf(JAASCredential(username, password)),
          autoStart = false,
@@ -107,9 +106,7 @@ class SpadeComponentTest {
 
       withTestKtor {
          it.handleRequest(HttpMethod.Get, "/api/behov/whatever") {
-            addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
-            addHeader(HttpHeaders.Authorization, "Bearer $token")
-            addHeader(HttpHeaders.Origin, "http://localhost")
+            setHeaders(token)
          }.apply {
             assertEquals(HttpStatusCode.Unauthorized, response.status())
          }
@@ -127,9 +124,7 @@ class SpadeComponentTest {
 
       withTestKtor {
          it.handleRequest(HttpMethod.Get, "/api/behov/whatever") {
-            addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
-            addHeader(HttpHeaders.Authorization, "Bearer $token")
-            addHeader(HttpHeaders.Origin, "http://localhost")
+            setHeaders(token)
          }.apply {
             assertEquals(HttpStatusCode.Unauthorized, response.status())
          }
@@ -149,14 +144,11 @@ class SpadeComponentTest {
       stubFor(jwkStub.stubbedConfigProvider())
 
       withTestKtor {
-
          await("Vent på behov")
             .atMost(20, TimeUnit.SECONDS)
             .untilAsserted {
                it.handleRequest(HttpMethod.Get, "/api/behov/12345678910") {
-                  addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
-                  addHeader(HttpHeaders.Authorization, "Bearer $token")
-                  addHeader(HttpHeaders.Origin, "http://localhost")
+                  setHeaders(token)
                }.apply {
                   assertEquals(HttpStatusCode.OK, response.status())
                   val reader = defaultObjectMapper.readerFor(object : TypeReference<List<JsonNode>>() {})
@@ -181,29 +173,18 @@ class SpadeComponentTest {
       stubFor(jwkStub.stubbedConfigProvider())
 
       withTestKtor {
-         fun makeRequest(maxRetryCount: Int, retryCount: Int = 0) {
-            if (maxRetryCount == retryCount) {
-               fail { "After $maxRetryCount tries the endpoint is still not available" }
-            }
-
-            it.handleRequest(HttpMethod.Get, "/api/behov/$aktøren") {
-               addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
-               addHeader(HttpHeaders.Authorization, "Bearer $token")
-               addHeader(HttpHeaders.Origin, "http://localhost")
-            }.apply {
-               if (response.status() == HttpStatusCode.ServiceUnavailable || response.status() == HttpStatusCode.NotFound) {
-                  Thread.sleep(1000)
-                  makeRequest(maxRetryCount, retryCount + 1)
-               } else {
+         await("Vent på behov")
+            .atMost(20, TimeUnit.SECONDS)
+            .untilAsserted {
+               it.handleRequest(HttpMethod.Get, "/api/behov/$aktøren") {
+                  setHeaders(token)
+               }.apply {
                   assertEquals(HttpStatusCode.OK, response.status())
                   val reader = defaultObjectMapper.readerFor(object : TypeReference<List<JsonNode>>() {})
                   val behovliste: List<JsonNode> = reader.readValue(response.content)
                   assertEquals(2, behovliste.size)
                }
             }
-         }
-
-         makeRequest(20)
       }
    }
 
@@ -221,21 +202,12 @@ class SpadeComponentTest {
       stubFor(jwkStub.stubbedConfigProvider())
 
       withTestKtor {
-
-         fun makeRequest(maxRetryCount: Int, retryCount: Int = 0) {
-            if (maxRetryCount == retryCount) {
-               fail { "After $maxRetryCount tries the endpoint is still not available" }
-            }
-
-            it.handleRequest(HttpMethod.Get, "/api/behov/periode?fom=2019-10-01&tom=2019-11-12") {
-               addHeader(HttpHeaders.Accept, ContentType.Application.Json.toString())
-               addHeader(HttpHeaders.Authorization, "Bearer $token")
-               addHeader(HttpHeaders.Origin, "http://localhost")
-            }.apply {
-               if (response.status() == HttpStatusCode.ServiceUnavailable || response.status() == HttpStatusCode.NotFound) {
-                  Thread.sleep(1000)
-                  makeRequest(maxRetryCount, retryCount + 1)
-               } else {
+         await("Vent på behov")
+            .atMost(20, TimeUnit.SECONDS)
+            .untilAsserted {
+               it.handleRequest(HttpMethod.Get, "/api/behov/periode?fom=2019-10-01&tom=2019-11-12") {
+                  setHeaders(token)
+               }.apply {
                   assertEquals(HttpStatusCode.OK, response.status())
 
                   val reader = defaultObjectMapper.readerFor(object : TypeReference<List<JsonNode>>() {})
@@ -244,9 +216,6 @@ class SpadeComponentTest {
                   assertEquals(2, behovliste.size)
                }
             }
-         }
-
-         makeRequest(20)
       }
    }
 
@@ -254,6 +223,7 @@ class SpadeComponentTest {
    @KtorExperimentalAPI
    fun `godkjenning av utbetaling`() {
       val jwkStub = JwtStub("test issuer", server.baseUrl())
+      val token = jwkStub.createTokenFor("mygroup")
 
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
@@ -264,26 +234,18 @@ class SpadeComponentTest {
          put("aktørId", "12345678916")
       }
 
-      withTestKtor {
-         val token = jwkStub.createTokenFor("mygroup")
 
-         fun makeRequest(maxRetryCount: Int, retryCount: Int = 0) {
-            if (maxRetryCount == retryCount) {
-               fail { "After $maxRetryCount tries the endpoint is still not available" }
-            }
-            it.handleRequest(HttpMethod.Post, "/api/vedtak") {
-               setHeaders(token)
-               setBody("""{"aktørId": "${origBehov["aktørId"].asText()}", "behovId": "${origBehov["@id"].asText()}","godkjent": true, "saksbehandlerIdent": "A123123", "vedtaksperiodeId": "vedtaksperiode-uuid"}""")
-            }.apply {
-               if (response.status() == HttpStatusCode.ServiceUnavailable || response.status() == HttpStatusCode.NotFound) {
-                  Thread.sleep(1000)
-                  makeRequest(maxRetryCount, retryCount + 1)
-               } else {
+      withTestKtor {
+         await("Vent på behov")
+            .atMost(20, TimeUnit.SECONDS)
+            .untilAsserted {
+               it.handleRequest(HttpMethod.Post, "/api/vedtak") {
+                  setHeaders(token)
+                  setBody("""{"aktørId": "${origBehov["aktørId"].asText()}", "behovId": "${origBehov["@id"].asText()}","godkjent": true, "saksbehandlerIdent": "A123123", "vedtaksperiodeId": "vedtaksperiode-uuid"}""")
+               }.apply {
                   assertEquals(HttpStatusCode.Created, response.status())
                }
             }
-         }
-         makeRequest(20)
       }
    }
 
@@ -291,6 +253,7 @@ class SpadeComponentTest {
    @KtorExperimentalAPI
    fun `godkjenning av utbetaling uten behovid`() {
       val jwkStub = JwtStub("test issuer", server.baseUrl())
+      val token = jwkStub.createTokenFor("mygroup")
 
       stubFor(jwkStub.stubbedJwkProvider())
       stubFor(jwkStub.stubbedConfigProvider())
@@ -302,25 +265,16 @@ class SpadeComponentTest {
       }
 
       withTestKtor {
-         val token = jwkStub.createTokenFor("mygroup")
-
-         fun makeRequest(maxRetryCount: Int, retryCount: Int = 0) {
-            if (maxRetryCount == retryCount) {
-               fail { "After $maxRetryCount tries the endpoint is still not available" }
-            }
-            it.handleRequest(HttpMethod.Post, "/api/vedtak") {
-               setHeaders(token)
-               setBody("""{"aktørId": "${origBehov["aktørId"].asText()}", "vedtaksperiodeId": "vedtaksperiode-uuid","godkjent": true, "saksbehandlerIdent": "A123123"}""")
-            }.apply {
-               if (response.status() == HttpStatusCode.ServiceUnavailable || response.status() == HttpStatusCode.NotFound) {
-                  Thread.sleep(1000)
-                  makeRequest(maxRetryCount, retryCount + 1)
-               } else {
+         await("Vent på behov")
+            .atMost(20, TimeUnit.SECONDS)
+            .untilAsserted {
+               it.handleRequest(HttpMethod.Post, "/api/vedtak") {
+                  setHeaders(token)
+                  setBody("""{"aktørId": "${origBehov["aktørId"].asText()}", "vedtaksperiodeId": "vedtaksperiode-uuid","godkjent": true, "saksbehandlerIdent": "A123123"}""")
+               }.apply {
                   assertEquals(HttpStatusCode.Created, response.status())
                }
             }
-         }
-         makeRequest(20)
       }
    }
 

@@ -1,7 +1,6 @@
 package no.nav.helse.spade.behov
 
 import arrow.core.Either
-import arrow.core.left
 import arrow.core.right
 import com.fasterxml.jackson.databind.JsonNode
 import no.nav.helse.Feilårsak
@@ -35,9 +34,10 @@ class KafkaBehovRepository(stream: BehovConsumer) {
 
    fun getBehovForPeriode(fom: String, tom: String): Either<Feilårsak, List<JsonNode>> = try {
       stateStore.all().use { iterator ->
-         iterator.asSequence().flatMap { it.value.asSequence() }.filter { node ->
-         isDateInPeriod(node, fom, tom)
-      }.toList().right()
+         iterator.asSequence()
+            .flatMap { it.value.asSequence() }
+            .filter { node -> isDateInPeriod(node, fom, tom) }
+            .toList().right()
       }
    } catch (err: InvalidStateStoreException) {
       log.info("state store is not available yet", err)
@@ -48,10 +48,10 @@ class KafkaBehovRepository(stream: BehovConsumer) {
    }
 
    private fun isDateInPeriod(node: JsonNode, fom: String, tom: String): Boolean {
-         return node[opprettetKey]?.let {
-            val behovOpprettet = LocalDateTime.parse(it.asText()).toLocalDate()
-            behovOpprettet >= LocalDate.parse(fom) && behovOpprettet <= (LocalDate.parse(tom))
-         } ?: false
+      return node[opprettetKey]?.let {
+         val behovOpprettet = LocalDateTime.parse(it.asText()).toLocalDate()
+         behovOpprettet >= LocalDate.parse(fom) && behovOpprettet <= (LocalDate.parse(tom))
+      } ?: false
    }
 
 }

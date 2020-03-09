@@ -41,15 +41,18 @@ class BehovConsumer(props: Properties, private val storeName: String) {
       const val behovNavn = "Godkjenning"
    }
 
-   fun topology(storeName: String): Topology {
+   private fun topology(storeName: String): Topology {
       val builder = StreamsBuilder()
 
       val keySerde = Serdes.String()
       val valueSerde = Serdes.serdeFrom(JsonNodeSerializer(), JsonNodeDeserializer())
-      val listValueSerde = Serdes.serdeFrom(ListSerializer(JsonNodeSerializer()), ListDeserializer(JsonNodeDeserializer()))
+      val listValueSerde =
+         Serdes.serdeFrom(ListSerializer(JsonNodeSerializer()), ListDeserializer(JsonNodeDeserializer()))
 
-      val behovStream = builder.stream<String, JsonNode>(Topics.rapidTopic, Consumed.with(keySerde, valueSerde)
-         .withOffsetResetPolicy(Topology.AutoOffsetReset.EARLIEST))
+      val behovStream = builder.stream(
+         Topics.rapidTopic, Consumed.with(keySerde, valueSerde)
+            .withOffsetResetPolicy(Topology.AutoOffsetReset.EARLIEST)
+      )
 
       val materialized = Materialized.`as`<String, List<JsonNode>, KeyValueStore<Bytes, ByteArray>>(storeName)
          .withKeySerde(keySerde)
@@ -58,18 +61,20 @@ class BehovConsumer(props: Properties, private val storeName: String) {
       behovStream
          //TODO: Filtrere ut behov som matcher et behov med løsning
          .filter { _, value -> value != null }
-         .filter {_, value -> value.hasNonNull(behovKey) }
+         .filter { _, value -> value.hasNonNull(behovKey) }
          .filter { _, value -> isNeedsApproval(value[behovKey]) }
          .filter { _, value -> value[løsningKey] == null }
          .groupBy({ _, value -> value[aktørIdKey].asText() }, Serialized.with(keySerde, valueSerde))
-         .aggregate({ emptyList() }, { _, value, aggregated ->
-            aggregated.toMutableList().apply { add(value) }
-         }, materialized)
+         .aggregate(
+            { emptyList() },
+            { _, value, aggregated -> aggregated.toMutableList().apply { add(value) } },
+            materialized
+         )
 
       return builder.build()
    }
 
-   private fun isNeedsApproval(behovFelt : JsonNode)  =
+   private fun isNeedsApproval(behovFelt: JsonNode) =
       behovFelt.map { b -> b.asText() }.any { t -> t == behovNavn }
 
    private fun KafkaStreams.addShutdownHook() {
