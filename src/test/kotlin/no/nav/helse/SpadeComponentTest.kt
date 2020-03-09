@@ -190,6 +190,35 @@ class SpadeComponentTest {
 
    @Test
    @KtorExperimentalAPI
+   fun `behov med løsning filtreres ut`() {
+      val jwkStub = JwtStub("test issuer", server.baseUrl())
+      val token = jwkStub.createTokenFor("mygroup")
+
+      val behovOpprettet = "2019-11-19T00:00:00.000000"
+      produceOneMessage("12341", behovOpprettet)
+      produceOneMessageWithLøsning(behovOpprettet)
+
+      stubFor(jwkStub.stubbedJwkProvider())
+      stubFor(jwkStub.stubbedConfigProvider())
+
+      withTestKtor {
+         await("Vent på behov")
+            .atMost(20, TimeUnit.SECONDS)
+            .untilAsserted {
+               it.handleRequest(HttpMethod.Get, "/api/behov/periode?fom=2019-11-19&tom=2019-11-19") {
+                  setHeaders(token)
+               }.apply {
+                  assertEquals(HttpStatusCode.OK, response.status())
+                  val reader = defaultObjectMapper.readerFor(object : TypeReference<List<JsonNode>>() {})
+                  val behovliste: List<JsonNode> = reader.readValue(response.content)
+                  assertEquals(1, behovliste.size)
+               }
+            }
+      }
+   }
+
+   @Test
+   @KtorExperimentalAPI
    fun `alle behov for en tidsperiode`() {
       val jwkStub = JwtStub("test issuer", server.baseUrl())
       val token = jwkStub.createTokenFor("mygroup")
@@ -251,7 +280,7 @@ class SpadeComponentTest {
 
    @Test
    @KtorExperimentalAPI
-   fun `godkjenning av utbetaling uten behovid`() {
+   fun `kan godkjenne utbetaling uten å oppgi behovId`() {
       val jwkStub = JwtStub("test issuer", server.baseUrl())
       val token = jwkStub.createTokenFor("mygroup")
 
@@ -281,12 +310,29 @@ class SpadeComponentTest {
    private fun produceOneMessage(aktørId: String, timestamp: String? = null) {
       val message = defaultObjectMapper.readTree(
          File("src/test/resources/behov/behovSomListe.json").readText()) as ObjectNode
+      message.put("@id", UUID.randomUUID().toString())
       message.put("aktørId", aktørId)
       timestamp?.let {
          message.put("@opprettet", timestamp)
       }
       val producer = KafkaProducer<String, JsonNode>(producerProperties())
       producer.send(ProducerRecord(rapidTopic, message))
+      producer.flush()
+   }
+
+   private fun produceOneMessageWithLøsning(opprettet: String) {
+      val behov = defaultObjectMapper.readTree(
+         File("src/test/resources/behov/behovSomListe.json").readText()) as ObjectNode
+      val behovId = UUID.randomUUID().toString()
+      behov.put("@id", behovId)
+      behov.put("@opprettet", opprettet)
+
+      val løsning = behov.deepCopy()
+      løsning.put("@løsning", "Godkjenning")
+
+      val producer = KafkaProducer<String, JsonNode>(producerProperties())
+      producer.send(ProducerRecord(rapidTopic, behov))
+      producer.send(ProducerRecord(rapidTopic, løsning))
       producer.flush()
    }
 

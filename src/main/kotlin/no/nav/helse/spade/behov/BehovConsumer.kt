@@ -12,8 +12,8 @@ import org.apache.kafka.streams.KafkaStreams
 import org.apache.kafka.streams.StreamsBuilder
 import org.apache.kafka.streams.Topology
 import org.apache.kafka.streams.kstream.Consumed
+import org.apache.kafka.streams.kstream.Grouped
 import org.apache.kafka.streams.kstream.Materialized
-import org.apache.kafka.streams.kstream.Serialized
 import org.apache.kafka.streams.state.KeyValueStore
 import org.apache.kafka.streams.state.QueryableStoreTypes
 import org.slf4j.LoggerFactory
@@ -39,6 +39,7 @@ class BehovConsumer(props: Properties, private val storeName: String) {
       const val løsningKey = "@løsning"
       const val behovKey = "@behov"
       const val behovNavn = "Godkjenning"
+      const val idKey = "@id"
    }
 
    private fun topology(storeName: String): Topology {
@@ -59,12 +60,17 @@ class BehovConsumer(props: Properties, private val storeName: String) {
          .withValueSerde(listValueSerde)
 
       behovStream
-         //TODO: Filtrere ut behov som matcher et behov med løsning
          .filter { _, value -> value != null }
          .filter { _, value -> value.hasNonNull(behovKey) }
          .filter { _, value -> isNeedsApproval(value[behovKey]) }
+         .groupBy({ _, behov -> behov[idKey].asText() }, Grouped.with(keySerde, valueSerde))
+         .reduce { aggregertBehov, behovet ->
+            if (aggregertBehov[løsningKey] != null) aggregertBehov
+            else behovet
+         }
+         .toStream()
          .filter { _, value -> value[løsningKey] == null }
-         .groupBy({ _, value -> value[aktørIdKey].asText() }, Serialized.with(keySerde, valueSerde))
+         .groupBy({ _, value -> value[aktørIdKey].asText() }, Grouped.with(keySerde, valueSerde))
          .aggregate(
             { emptyList() },
             { _, value, aggregated -> aggregated.toMutableList().apply { add(value) } },
