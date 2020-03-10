@@ -328,7 +328,7 @@ class SpadeComponentTest {
       behov.put("@opprettet", opprettet)
 
       val løsning = behov.deepCopy()
-      løsning.put("@løsning", "Godkjenning")
+      løsning.putPOJO("@løsning", mapOf("Godkjenning" to mapOf("godkjent" to true)))
 
       val producer = KafkaProducer<String, JsonNode>(producerProperties())
       producer.send(ProducerRecord(rapidTopic, behov))
