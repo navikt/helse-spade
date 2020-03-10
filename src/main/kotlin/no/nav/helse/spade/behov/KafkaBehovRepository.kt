@@ -36,6 +36,9 @@ class KafkaBehovRepository(stream: BehovConsumer) {
       stateStore.all().use { iterator ->
          iterator.asSequence()
             .flatMap { it.value.asSequence() }
+            .groupBy { behov -> behov[BehovConsumer.idKey].asText() }
+            .values.filter { list -> !hasLøsning(list) }
+            .flatten()
             .filter { node -> isDateInPeriod(node, fom, tom) }
             .toList().right()
       }
@@ -46,6 +49,8 @@ class KafkaBehovRepository(stream: BehovConsumer) {
       log.error("unknown error while fetching state store", err)
       Either.Left(Feilårsak.UkjentFeil)
    }
+
+   private fun hasLøsning(behov: List<JsonNode>) = behov.any { node -> node["@løsning"] != null }
 
    private fun isDateInPeriod(node: JsonNode, fom: String, tom: String): Boolean {
       return node[opprettetKey]?.let {
