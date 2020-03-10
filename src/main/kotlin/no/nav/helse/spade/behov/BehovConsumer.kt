@@ -19,6 +19,8 @@ import org.apache.kafka.streams.state.QueryableStoreTypes
 import org.slf4j.LoggerFactory
 import java.util.*
 
+private val auditLog = LoggerFactory.getLogger("auditLogger")
+
 class BehovConsumer(props: Properties, private val storeName: String) {
    private val consumer = KafkaStreams(topology(storeName), props)
 
@@ -62,13 +64,16 @@ class BehovConsumer(props: Properties, private val storeName: String) {
       behovStream
          .filter { _, value -> value != null }
          .filter { _, value -> value.hasNonNull(behovKey) }
+         .peek { _, value -> auditLog.info("Fant behov: $value") }
          .filter { _, value -> isNeedsApproval(value[behovKey]) }
+         .peek { _, value -> auditLog.info("Fant godkjenningsbehov: $value") }
          .groupBy({ _, behov -> behov[idKey].asText() }, Grouped.with(keySerde, valueSerde))
          .reduce { aggregertBehov, behovet ->
             if (aggregertBehov[løsningKey] != null) aggregertBehov
             else behovet
          }
          .toStream()
+         .peek { _, value -> auditLog.info("Etter group/reduce: $value") }
          .filter { _, value -> value[løsningKey] == null }
          .groupBy({ _, value -> value[aktørIdKey].asText() }, Grouped.with(keySerde, valueSerde))
          .aggregate(
