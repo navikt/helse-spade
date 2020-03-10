@@ -24,6 +24,7 @@ class BehovConsumer(props: Properties, private val storeName: String) {
 
    init {
       consumer.addShutdownHook()
+      consumer.cleanUp()
       consumer.start()
    }
 

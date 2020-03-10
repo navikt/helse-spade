@@ -5,7 +5,6 @@ import arrow.core.right
 import com.fasterxml.jackson.databind.JsonNode
 import no.nav.helse.Feilårsak
 import org.apache.kafka.streams.errors.InvalidStateStoreException
-import org.apache.kafka.streams.processor.StateStore
 import org.slf4j.LoggerFactory
 import java.time.LocalDate
 import java.time.LocalDateTime
@@ -14,11 +13,6 @@ class KafkaBehovRepository(stream: BehovConsumer) {
 
    private val stateStore by lazy {
       stream.store()
-   }
-
-   init {
-      val store = stream.store() as StateStore
-      store.flush()
    }
 
    companion object {
