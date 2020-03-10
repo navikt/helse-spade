@@ -6,9 +6,9 @@ import com.fasterxml.jackson.datatype.jsr310.JavaTimeModule
 import io.ktor.application.*
 import io.ktor.auth.Authentication
 import io.ktor.auth.authenticate
-import io.ktor.auth.authentication
 import io.ktor.auth.jwt.JWTPrincipal
 import io.ktor.auth.jwt.jwt
+import io.ktor.auth.principal
 import io.ktor.features.*
 import io.ktor.jackson.jackson
 import io.ktor.request.path
@@ -95,9 +95,9 @@ fun Application.spade() {
    }
 
    intercept(ApplicationCallPipeline.Call) {
-      (call.authentication.principal as JWTPrincipal).payload.let { payload ->
-         log.info("Bruker=\"${payload.subject}\" gjør kall mot url=\"${call.request.uri}\"")
-         auditLog.info("Bruker=\"${payload.subject}\" gjør kall mot url=\"${call.request.uri}\"")
+      call.principal<JWTPrincipal>()?.let { principal ->
+         log.info("Bruker=\"${principal.payload.getClaim("NAVident").asString()}\" gjør kall mot url=\"${call.request.uri}\"")
+         auditLog.info("Bruker=\"${principal.payload.getClaim("NAVident").asString()}\" gjør kall mot url=\"${call.request.uri}\"")
       }
    }
 
