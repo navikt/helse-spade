@@ -19,8 +19,6 @@ import org.apache.kafka.streams.state.QueryableStoreTypes
 import org.slf4j.LoggerFactory
 import java.util.*
 
-private val sikkerLogg = LoggerFactory.getLogger("sikkerLogg")
-
 class BehovConsumer(props: Properties, private val storeName: String) {
    private val consumer = KafkaStreams(topology(storeName), props)
 
@@ -38,7 +36,6 @@ class BehovConsumer(props: Properties, private val storeName: String) {
    companion object {
       private val log = LoggerFactory.getLogger(BehovConsumer::class.java)
       const val aktørIdKey = "aktørId"
-      const val løsningKey = "@løsning"
       const val behovKey = "@behov"
       const val behovNavn = "Godkjenning"
       const val idKey = "@id"
@@ -64,7 +61,7 @@ class BehovConsumer(props: Properties, private val storeName: String) {
       behovStream
          .filter { _, value -> value != null }
          .filter { _, value -> value.hasNonNull(behovKey) }
-         .filter { _, value -> isNeedsApproval(value[behovKey]) }
+         .filter { _, value -> trengerGodkjenning(value[behovKey]) }
          .groupBy({ _, value -> value[aktørIdKey].asText() }, Grouped.with(keySerde, valueSerde))
          .aggregate(
             { emptyList() },
@@ -75,7 +72,7 @@ class BehovConsumer(props: Properties, private val storeName: String) {
       return builder.build()
    }
 
-   private fun isNeedsApproval(behovFelt: JsonNode) =
+   private fun trengerGodkjenning(behovFelt: JsonNode) =
       behovFelt.map { b -> b.asText() }.any { t -> t == behovNavn }
 
    private fun KafkaStreams.addShutdownHook() {
