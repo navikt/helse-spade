@@ -6,7 +6,7 @@ val kafkaVersion = "2.3.0"
 val fuelVersion = "2.0.1"
 val arrowVersion = "0.9.0"
 
-val junitJupiterVersion = "5.5.0-RC2"
+val junitJupiterVersion = "5.6.0"
 val assertJVersion = "3.12.2"
 val mainClass = "no.nav.helse.AppKt"
 val jacksonVersion = "2.10.0"
@@ -15,7 +15,7 @@ val mockkVersion = "1.9.3"
 val nimbusVersion = "5.8.0.wso2v1"
 
 plugins {
-   kotlin("jvm") version "1.3.40"
+   kotlin("jvm") version "1.3.70"
 }
 
 buildscript {
@@ -74,12 +74,11 @@ repositories {
    jcenter()
    mavenCentral()
    maven("http://packages.confluent.io/maven/")
-   maven("https://dl.bintray.com/kotlin/ktor")
 }
 
 java {
-   sourceCompatibility = JavaVersion.VERSION_11
-   targetCompatibility = JavaVersion.VERSION_11
+   sourceCompatibility = JavaVersion.VERSION_12
+   targetCompatibility = JavaVersion.VERSION_12
 }
 
 tasks.named<Jar>("jar") {
@@ -101,12 +100,12 @@ tasks.named<Jar>("jar") {
    }
 }
 
-tasks.named<KotlinCompile>("compileKotlin") {
-   kotlinOptions.jvmTarget = "1.8"
+tasks.withType<KotlinCompile> {
+   kotlinOptions.jvmTarget = "12"
 }
 
 tasks.named<KotlinCompile>("compileTestKotlin") {
-   kotlinOptions.jvmTarget = "1.8"
+   kotlinOptions.jvmTarget = "12"
 }
 
 tasks.withType<Test> {
